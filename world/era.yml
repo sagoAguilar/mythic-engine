@@ -1,0 +1,79 @@
+# era.yml — Era 1 configuration. All tunable game values live here.
+# Engine reads this file; never hardcode these values in engine/.
+
+era:
+  number: 1
+  seed: 20260706
+  tick_cap: 100                # hard cap; era ends regardless of state
+  cadence: manual              # manual | cron expression (e.g. "0 * * * *")
+
+coronation:
+  supremacy_threshold: 0.45    # fraction of regions to count as supreme (>45% of 12 = 6)
+  k_ticks: 10                  # consecutive supreme ticks to coronate
+
+orders:
+  cap_force: 3                 # max orders per batch, forces
+  cap_adventurer: 2            # max orders per batch, adventurer
+  npc_cap: 1                   # NPC policy emits at most 1 order regardless of caps
+
+economy:
+  yield_neutral: 1             # essence per region per tick
+  yield_capital: 2
+  yield_ring: 2
+  recruit_cost: 2              # essence per unit
+  fortify_cost: 5
+  fortify_bonus: 2             # defense power per fortification level
+  fortify_cap: 3
+
+combat:
+  tie_favors: defender         # frozen: strict determinism, no seed in combat
+
+adventurer:
+  baseline_essence: 5
+  trade_cap_per_tick: 3
+  loot_burn_fraction: 0.5      # fraction of essence burned on death
+  loot_dissipation_ticks: 5    # M: ticks before regional loot dissipates
+  kill_order_cost: 1           # orders consumed by target: adventurer declaration
+  personal_quest:              # declared per era; types: accumulate | survive | chain | back_winner
+    type: survive
+    target: era                # survive the full era
+
+reputation:
+  scale_min: -100
+  scale_max: 100
+  initial: 0
+  decay_intra_era: 0           # frozen: no decay, memory is the point
+  cataclysm_multiplier: 0.5    # applied at era reset, rounds toward 0
+  deltas:
+    trade_per_tick: 2
+    quest_damages_force: -15
+    quest_damages_force_rivals: 10
+    refuge_per_tick: 1
+  thresholds:
+    trade: 10
+    refuge: 25
+    errands_v2: 40
+
+quests:
+  max_active_major: 1
+  max_active_minor: 2
+  window_ticks: 8              # T = spawn_tick + window
+  blockade_n_ticks: 3          # N: consecutive occupation ticks
+  attrition_delta: 4           # D: unit reduction target
+  rewards:
+    raid: 6
+    blockade: 5
+    attrition: 10
+    dethrone: 15
+  triggers:
+    supremacy_minor: 0.45      # leader fraction spawning minor quests
+    supremacy_major: 0.55      # leader fraction spawning major quests
+    adventurer_death_vengeance: raid   # spawns raid against the killer
+
+map:
+  arms: 3
+  regions_per_arm: 3           # capital + 2 neutrals
+  ring_size: 3
+
+budget:
+  tokens_per_era: 0            # 0 = uncapped for tracer bullet; set before first agent era

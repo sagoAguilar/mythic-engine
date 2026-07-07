@@ -1,0 +1,43 @@
+# Expected phase-1 delta.
+# force-2: attacked last tick (arm-2-a) and essence >= recruit_cost ->
+#   NPC step 1: recruit 1 in own region with fewest units
+#   (arm-2-a and arm-2-b tie at 1 unit; lexical tiebreak -> arm-2-a)
+# force-3: not attacked; essence >= fortify_cost, capital-3 fortification 0 < cap ->
+#   NPC step 2: fortify capital
+# adventurer-sago: loot active at its position ring-3 -> NPC step 1: claim_loot
+batches:
+  - actor: adventurer-sago
+    tick: 1
+    origin: npc
+    orders:
+      - action: claim_loot
+        region: ring-3
+  - actor: force-1
+    tick: 1
+    origin: agent
+    orders:
+      - action: move_units
+        from: capital-1
+        to: arm-1-b
+        count: 1
+  - actor: force-2
+    tick: 1
+    origin: npc
+    orders:
+      - action: recruit
+        region: arm-2-a
+        count: 1
+  - actor: force-3
+    tick: 1
+    origin: npc
+    orders:
+      - action: fortify
+        region: capital-3
+substitutions:
+  - actor: adventurer-sago
+    reason: no batch submitted
+  - actor: force-2
+    reason: invalid batch (schema or cap violation)
+  - actor: force-3
+    reason: no batch submitted
+ignored_batches: []

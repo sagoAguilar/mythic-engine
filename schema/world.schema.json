@@ -7,6 +7,12 @@
   "properties": {
     "era": { "$ref": "#/$defs/era_config" },
     "tick": { "type": "integer", "minimum": 0 },
+    "combats_last_tick": {
+      "description": "Regions where combat occurred in the previous tick; consumed by the phase-1 NPC policy triggers.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/region_id" },
+      "uniqueItems": true
+    },
     "regions": {
       "type": "object",
       "minProperties": 1,
@@ -46,7 +52,7 @@
       "items": { "$ref": "#/$defs/graveyard_entry" }
     }
   },
-  "required": ["era", "tick", "regions", "forces", "adventurers", "quests", "graveyard"],
+  "required": ["era", "tick", "combats_last_tick", "regions", "forces", "adventurers", "quests", "graveyard"],
   "additionalProperties": false,
   "$defs": {
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },

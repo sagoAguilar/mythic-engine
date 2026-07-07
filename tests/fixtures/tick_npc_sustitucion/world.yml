@@ -8,13 +8,14 @@ adventurers:
     personal_quest:
       target: era
       type: survive
-    position: arm-2-b
+    position: ring-3
     reputation:
       force-1: 0
       force-2: 0
       force-3: 0
     units: 1
-combats_last_tick: []
+combats_last_tick:
+- arm-2-a
 era:
   adventurer:
     baseline_essence: 5
@@ -226,7 +227,9 @@ regions:
     - ring-2
     fortification: 0
     id: ring-3
-    loot: null
+    loot:
+      essence: 2
+      expires_tick: 4
     owner: null
     units: 0
     yield: 2

@@ -1,0 +1,9 @@
+# valid batch: passes phase 1 untouched
+actor: force-1
+tick: 1
+origin: agent
+orders:
+  - action: move_units
+    from: capital-1
+    to: arm-1-b
+    count: 1

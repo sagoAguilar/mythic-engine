@@ -76,6 +76,7 @@ def _valid_world():
     return {
         "era": era,
         "tick": 0,
+        "combats_last_tick": [],
         "regions": build_map(3, CONFIG.economy),
         "forces": {
             f"force-{i}": {

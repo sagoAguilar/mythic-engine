@@ -219,3 +219,57 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
 8. Rúbrica del eval, definida antes de la primera era
 
 **Orden:** 2→3→4→5 con movimientos hardcodeados (tracer bullet), agentes al final.
+
+## Apéndice — Plantilla de chronicle (contrato de parsing, fase 11)
+
+Formato congelado de `/chronicle/tick-<N>.md`. Tablas pipe de Markdown con encabezados fijos; las siete secciones se emiten siempre (tabla sin filas si no hay datos); las líneas clave-valor (`Sustituciones`, `Coronación`, `Fin de era`) se emiten siempre, con `-` cuando están vacías. Parámetros como pares `clave=valor` ordenados alfabéticamente, unidos por espacio. Porcentajes con un decimal. El lore NO forma parte de este artefacto: se genera fuera del motor y jamás se lee.
+
+```markdown
+# Crónica — era <E> — tick <N>
+
+## Órdenes
+
+| actor | origen | # | acción | parámetros | estado |
+|---|---|---|---|---|---|
+| <actor> | agent|human|npc | <índice> | <acción> | <k=v ...> | válida / rechazada: <razón> |
+
+Sustituciones: <actor> (<razón>)[; ...] | -
+
+## Combates
+
+| región | atacante | unidades_atq | defensor | unidades_def | poder_def | ganador | sup_atq | sup_def |
+|---|---|---|---|---|---|---|---|---|
+
+## Colisiones
+
+| región | orden_por_hash |
+|---|---|
+| <región> | <actor>, <actor>, ... |
+
+## Economía
+
+| fuerza | rendimiento | esencia |
+|---|---|---|
+
+## Quests
+
+| id | evento | tipo | tier | detalle |
+|---|---|---|---|---|
+| <id> | spawn / resuelta / expirada | <tipo> | <tier> | deadline=<T> <k=v ...> / - |
+
+## Supremacía
+
+| fuerza | regiones | pct | streak | k_restante |
+|---|---|---|---|---|
+
+Coronación: <fuerza> | -
+Fin de era: coronation | tick_cap | -
+
+## Aventurero
+
+| id | posición | esencia | reputaciones | eventos |
+|---|---|---|---|---|
+| <id> | <región> / † <región> | <esencia> / - | force-1:<n> force-2:<n> ... / - | spawn / move:<región> / botín:+<n> / muerte:<fuerza|-> [; ...] / - |
+```
+
+Filas de Órdenes ordenadas por actor y luego índice; batch sin órdenes emite una fila `no-op`. Combates: una fila por ronda F1 en orden de escalera. Colisiones: participantes en el orden del hash sembrado (fase 4). Quests: primero spawns, luego resueltas/expiradas, cada grupo ordenado por id. Supremacía y Economía: una fila por fuerza, orden léxico. Aventurero: vivos primero (orden léxico), luego muertos del tick.

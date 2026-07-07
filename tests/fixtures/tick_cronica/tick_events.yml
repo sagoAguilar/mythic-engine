@@ -1,0 +1,112 @@
+adventurer_deaths: []
+adventurer_moves:
+  adventurer-sago: capital-2
+adventurer_spawned: []
+batches:
+- actor: adventurer-sago
+  orders:
+  - action: move_units
+    count: 1
+    from: arm-2-b
+    to: capital-2
+  origin: human
+  tick: 1
+- actor: force-1
+  orders:
+  - action: attack_region
+    count: 3
+    from: arm-1-a
+    to: ring-1
+  origin: agent
+  tick: 1
+- actor: force-2
+  orders:
+  - action: attack_region
+    count: 2
+    from: ring-1
+    to: arm-1-b
+  - action: move_units
+    count: 9
+    from: capital-2
+    to: ring-2
+  origin: agent
+  tick: 1
+- actor: force-3
+  orders:
+  - action: fortify
+    region: capital-3
+  origin: npc
+  tick: 1
+combats:
+- region: arm-1-b
+  rounds:
+  - attacker: force-2
+    attacker_survivors: 0
+    attacker_units: 2
+    defender: force-1
+    defender_power: 3
+    defender_survivors: 1
+    defender_units: 1
+    winner: force-1
+- region: ring-1
+  rounds:
+  - attacker: force-1
+    attacker_survivors: 2
+    attacker_units: 3
+    defender: force-2
+    defender_power: 1
+    defender_survivors: 0
+    defender_units: 1
+    winner: force-1
+loot_claims: {}
+pending_combats:
+- parties:
+  - actor: force-2
+    count: 2
+    kind: attack
+    target: null
+  region: arm-1-b
+- parties:
+  - actor: force-1
+    count: 3
+    kind: attack
+    target: null
+  region: ring-1
+quests_resolved:
+  blockade-0-2: failure
+  raid-0-1: success
+quests_spawned:
+  raid-1-1:
+    claimed_by: []
+    deadline: 9
+    eligibility: any
+    id: raid-1-1
+    max_claimants: open
+    params:
+      force: force-2
+      region: arm-2-a
+    progress: {}
+    reward: 6
+    stake: 1
+    tier: minor
+    type: raid
+rejected_orders:
+- actor: force-2
+  index: 1
+  reason: 'move_units: 9 units exceed the 3 available in capital-2'
+substitutions:
+- actor: force-3
+  reason: no batch submitted
+supremacy:
+  coronation: null
+  era_ends: null
+  supremacy:
+    leader: force-2
+    streaks:
+      force-1: 0
+      force-2: 0
+      force-3: 0
+yields:
+  force-1: 6
+  force-2: 8
+  force-3: 4

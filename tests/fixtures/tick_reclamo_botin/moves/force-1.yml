@@ -1,0 +1,7 @@
+# claim_loot is adventurer-only
+actor: force-1
+tick: 1
+origin: agent
+orders:
+  - action: claim_loot
+    region: arm-1-b

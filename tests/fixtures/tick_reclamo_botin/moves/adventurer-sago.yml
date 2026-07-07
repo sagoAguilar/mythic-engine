@@ -1,0 +1,6 @@
+actor: adventurer-sago
+tick: 1
+origin: human
+orders:
+  - action: claim_loot
+    region: ring-3

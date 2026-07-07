@@ -1,0 +1,15 @@
+# Expected phase-6 delta. Both adventurers stand on ring-3's loot;
+# claim priority by sha256(seed:tick:region:actor):
+#   adventurer-sago (0dd69ef8...) < adventurer-elder (c7d21f13...)
+# so sago claims the 3 essence and the loot is extinguished.
+essence_changes:
+  adventurer-sago: 3
+loot_changes:
+  ring-3: null
+rejected_orders:
+  - actor: adventurer-elder
+    index: 0
+    reason: "claim_loot: loot in ring-3 extinguished by an earlier claim"
+  - actor: force-1
+    index: 0
+    reason: "claim_loot: only an adventurer may claim loot"

@@ -1,0 +1,15 @@
+# essence 3: recruit on neutral REJECTED (not owned), recruit 2 REJECTED
+# (cost 4 > 3), recruit 1 lands (-2, leaves 1)
+actor: force-3
+tick: 1
+origin: agent
+orders:
+  - action: recruit
+    region: ring-3
+    count: 1
+  - action: recruit
+    region: capital-3
+    count: 2
+  - action: recruit
+    region: capital-3
+    count: 1

@@ -1,0 +1,29 @@
+# Expected phase-3 delta. All spending draws on the pre-tick essence
+# pool, sequentially within each batch; phase-7 yield cannot fund
+# same-tick orders.
+essence_changes:
+  force-1: -10
+  force-2: -5
+  force-3: -2
+unit_changes:
+  arm-1-a: 2
+  capital-1: 3
+  capital-3: 1
+fortification_changes:
+  capital-2: 1
+rejected_orders:
+  - actor: adventurer-sago
+    index: 0
+    reason: "recruit: only a force may recruit or fortify"
+  - actor: force-1
+    index: 1
+    reason: "fortify: cost 5 exceeds the 4 essence remaining for force-1"
+  - actor: force-2
+    index: 1
+    reason: "fortify: capital-2 is already at fortification cap 3"
+  - actor: force-3
+    index: 0
+    reason: "recruit: ring-3 is not owned by force-3"
+  - actor: force-3
+    index: 1
+    reason: "recruit: cost 4 exceeds the 3 essence remaining for force-3"

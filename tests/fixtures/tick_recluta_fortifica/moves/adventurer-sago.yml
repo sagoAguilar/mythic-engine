@@ -1,0 +1,12 @@
+# recruit is force-only; the move order is not phase 3's business
+actor: adventurer-sago
+tick: 1
+origin: human
+orders:
+  - action: recruit
+    region: ring-3
+    count: 1
+  - action: move_units
+    from: ring-3
+    to: ring-1
+    count: 1

@@ -1,0 +1,14 @@
+# essence 10, recruit_cost 2, fortify_cost 5:
+# recruit 3 (-6, leaves 4) -> fortify needs 5, REJECTED -> recruit 2 (-4, leaves 0)
+actor: force-1
+tick: 1
+origin: agent
+orders:
+  - action: recruit
+    region: capital-1
+    count: 3
+  - action: fortify
+    region: capital-1
+  - action: recruit
+    region: arm-1-a
+    count: 2

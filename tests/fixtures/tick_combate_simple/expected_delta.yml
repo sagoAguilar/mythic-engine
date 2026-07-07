@@ -1,0 +1,59 @@
+# Expected phase-5 delta (F1 annihilation, incumbency ladder, forts persist).
+# ring-1: defender power 1 + 1x2 = 3 >= attacker 2 -> attacker annihilated,
+#   defender loses max(0, 2 - 2) = 0. The fort repels the mirror attack.
+# ring-2: attacker 3 > defender power 1 -> capture with 2 survivors.
+# ring-3: force-3 walks into the empty neutral (unopposed round), then
+#   force-2 ties 2 vs 2 -> defender holds, both sides annihilated:
+#   force-3 owns a scorched region with 0 units.
+unit_changes:
+  ring-2: 1
+owner_changes:
+  ring-2: force-1
+  ring-3: force-3
+essence_changes: {}
+loot_changes: {}
+adventurer_deaths: []
+graveyard_additions: []
+combats:
+  - region: ring-1
+    rounds:
+      - attacker: force-2
+        attacker_units: 2
+        defender: force-1
+        defender_units: 1
+        defender_power: 3
+        winner: force-1
+        attacker_survivors: 0
+        defender_survivors: 1
+  - region: ring-2
+    rounds:
+      - attacker: force-1
+        attacker_units: 3
+        defender: force-2
+        defender_units: 1
+        defender_power: 1
+        winner: force-1
+        attacker_survivors: 2
+        defender_survivors: 0
+  - region: ring-3
+    rounds:
+      - attacker: force-3
+        attacker_units: 2
+        defender: null
+        defender_units: 0
+        defender_power: 0
+        winner: force-3
+        attacker_survivors: 2
+        defender_survivors: 0
+      - attacker: force-2
+        attacker_units: 2
+        defender: force-3
+        defender_units: 2
+        defender_power: 2
+        winner: force-3
+        attacker_survivors: 0
+        defender_survivors: 0
+combat_regions:
+  - ring-1
+  - ring-2
+  - ring-3

@@ -1,0 +1,25 @@
+# Phase-4 output: parties per contested region, already ordered by
+# sha256(seed:tick:region:actor). Mirror at ring-1/ring-2; two-party
+# collision on neutral ring-3 (force-3 hashes first under seed 20260706).
+- region: ring-1
+  parties:
+    - actor: force-2
+      count: 2
+      kind: attack
+      target: null
+- region: ring-2
+  parties:
+    - actor: force-1
+      count: 3
+      kind: attack
+      target: null
+- region: ring-3
+  parties:
+    - actor: force-3
+      count: 2
+      kind: move
+      target: null
+    - actor: force-2
+      count: 2
+      kind: move
+      target: null

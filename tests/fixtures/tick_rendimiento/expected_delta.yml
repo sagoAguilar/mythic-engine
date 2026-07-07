@@ -1,0 +1,12 @@
+# Expected phase-7 delta. Yield is paid per owned region on post-combat
+# ownership (region yield field; capitals and ring pay 2, arms 1 in era 1).
+# Ownership alone pays: force-3's 0-unit scorched regions still yield.
+# Neutrals pay nobody; the adventurer owns nothing and receives nothing.
+# The stale pot on arm-1-b (expired tick 0 < resolving tick 1) dissipates;
+# ring-3's live pot stays untouched.
+essence_changes:
+  force-1: 5
+  force-2: 6
+  force-3: 5
+loot_changes:
+  arm-1-b: null

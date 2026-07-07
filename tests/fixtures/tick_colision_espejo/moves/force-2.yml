@@ -1,0 +1,17 @@
+# mirror side B, collision party at ring-3, reinforcement of own region
+actor: force-2
+tick: 1
+origin: agent
+orders:
+  - action: attack_region
+    from: ring-2
+    to: ring-1
+    count: 2
+  - action: move_units
+    from: ring-2
+    to: ring-3
+    count: 2
+  - action: move_units
+    from: capital-2
+    to: arm-2-a
+    count: 1

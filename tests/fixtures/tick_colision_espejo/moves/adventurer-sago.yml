@@ -1,0 +1,9 @@
+# adventurer may enter owned territory (non-combatant coexistence)
+actor: adventurer-sago
+tick: 1
+origin: human
+orders:
+  - action: move_units
+    from: arm-2-b
+    to: capital-2
+    count: 1

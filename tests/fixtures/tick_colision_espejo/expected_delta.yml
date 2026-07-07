@@ -1,0 +1,45 @@
+# Expected phase-4 delta for seed 20260706, tick 1.
+# Collision order at ring-3 by sha256("20260706:1:ring-3:<actor>"):
+#   force-3 (13855e2e...) < force-2 (3617bfeb...)
+unit_changes:
+  arm-1-b: 2
+  arm-2-a: 1
+  arm-3-a: -2
+  capital-1: -2
+  capital-2: -1
+  ring-1: -2
+  ring-2: -4
+owner_changes:
+  arm-1-b: force-1
+adventurer_moves:
+  adventurer-sago: capital-2
+pending_combats:
+  - region: ring-1
+    parties:
+      - actor: force-2
+        count: 2
+        kind: attack
+        target: null
+  - region: ring-2
+    parties:
+      - actor: force-1
+        count: 2
+        kind: attack
+        target: null
+  - region: ring-3
+    parties:
+      - actor: force-3
+        count: 2
+        kind: move
+        target: null
+      - actor: force-2
+        count: 2
+        kind: move
+        target: null
+rejected_orders:
+  - actor: force-3
+    index: 1
+    reason: "move_units: ring-3 is not adjacent to capital-3"
+  - actor: force-3
+    index: 2
+    reason: "move_units: 5 units exceed the 1 available in arm-3-b"

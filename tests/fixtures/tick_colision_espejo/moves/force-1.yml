@@ -1,0 +1,13 @@
+# mirror side A: attack ring-2 while ring-1 is attacked; plus neutral capture
+actor: force-1
+tick: 1
+origin: agent
+orders:
+  - action: attack_region
+    from: ring-1
+    to: ring-2
+    count: 2
+  - action: move_units
+    from: capital-1
+    to: arm-1-b
+    count: 2

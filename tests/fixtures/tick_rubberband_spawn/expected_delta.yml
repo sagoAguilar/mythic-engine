@@ -1,0 +1,52 @@
+# Expected phase-9 delta (resolving tick 1, window 8 -> deadline 9).
+# Vengeance first: raid against the killer force-1, X = its least-
+#   garrisoned region (arm-1-a), occupying minor slot 1 of 2.
+# Rubber band (leader force-2 at 7/12 = 0.583 > 0.45 and > 0.55):
+#   minor fill order raid -> blockade: the raid takes slot 2
+#   (X = arm-1-b, lexical winner of the 1-unit tie); blockade is then
+#   skipped at the composition cap.
+#   major slot: leader streak is 0 -> attrition, units_at_spawn = 12.
+quests_spawned:
+  attrition-1-3:
+    id: attrition-1-3
+    type: attrition
+    tier: major
+    eligibility: forces
+    reward: 10
+    stake: 2
+    deadline: 9
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      force: force-2
+      units_at_spawn: 12
+      delta: 4
+  raid-1-1:
+    id: raid-1-1
+    type: raid
+    tier: minor
+    eligibility: any
+    reward: 6
+    stake: 1
+    deadline: 9
+    max_claimants: open
+    claimed_by: []
+    progress: {}
+    params:
+      region: arm-1-a
+      force: force-1
+  raid-1-2:
+    id: raid-1-2
+    type: raid
+    tier: minor
+    eligibility: any
+    reward: 6
+    stake: 1
+    deadline: 9
+    max_claimants: open
+    claimed_by: []
+    progress: {}
+    params:
+      region: arm-1-b
+      force: force-2

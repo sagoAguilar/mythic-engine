@@ -106,6 +106,12 @@ class QuestRewards:
 
 
 @dataclass(frozen=True)
+class QuestStakes:
+    minor: int
+    major: int
+
+
+@dataclass(frozen=True)
 class QuestTriggers:
     supremacy_minor: float
     supremacy_major: float
@@ -120,6 +126,7 @@ class Quests:
     blockade_n_ticks: int
     attrition_delta: int
     rewards: QuestRewards
+    stakes: QuestStakes
     triggers: QuestTriggers
 
 

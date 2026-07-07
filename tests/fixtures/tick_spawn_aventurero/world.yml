@@ -48,6 +48,9 @@ era:
       blockade: 5
       dethrone: 15
       raid: 6
+    stakes:
+      major: 2
+      minor: 1
     triggers:
       adventurer_death_vengeance: raid
       supremacy_major: 0.55

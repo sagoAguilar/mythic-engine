@@ -65,6 +65,9 @@ quests:
     blockade: 5
     attrition: 10
     dethrone: 15
+  stakes:
+    minor: 1                   # charged at accept
+    major: 2
   triggers:
     supremacy_minor: 0.45      # leader fraction spawning minor quests
     supremacy_major: 0.55      # leader fraction spawning major quests

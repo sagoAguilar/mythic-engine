@@ -1,0 +1,10 @@
+# invalid: target may only be the literal "adventurer"
+actor: force-2
+tick: 3
+origin: agent
+orders:
+  - action: attack_region
+    from: ring-2
+    to: ring-1
+    count: 4
+    target: force-1

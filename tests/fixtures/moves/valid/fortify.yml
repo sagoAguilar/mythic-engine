@@ -1,0 +1,6 @@
+actor: force-1
+tick: 4
+origin: npc
+orders:
+  - action: fortify
+    region: capital-1

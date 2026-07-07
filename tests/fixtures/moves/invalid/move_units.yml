@@ -1,0 +1,8 @@
+# invalid: missing required parameter `count`
+actor: force-1
+tick: 3
+origin: agent
+orders:
+  - action: move_units
+    from: capital-1
+    to: arm-1-a

@@ -1,0 +1,9 @@
+# valid: move units between adjacent regions
+actor: force-1
+tick: 3
+origin: agent
+orders:
+  - action: move_units
+    from: capital-1
+    to: arm-1-a
+    count: 2

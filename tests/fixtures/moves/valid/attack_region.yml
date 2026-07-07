@@ -1,0 +1,14 @@
+# valid: plain attack plus explicit adventurer-hunt declaration (F4)
+actor: force-2
+tick: 3
+origin: agent
+orders:
+  - action: attack_region
+    from: ring-2
+    to: ring-1
+    count: 4
+  - action: attack_region
+    from: arm-2-a
+    to: ring-2
+    count: 1
+    target: adventurer

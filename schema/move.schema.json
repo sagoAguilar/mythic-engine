@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mythic-engine/schema/move.schema.json",
+  "title": "Move batch",
+  "description": "One file in /moves/tick-N/: a batch of orders from a single actor. Order caps (cap_force, cap_adventurer) are era.yml parameters enforced by engine/validate.py, not by this schema.",
+  "type": "object",
+  "properties": {
+    "actor": {
+      "type": "string",
+      "pattern": "^(force-[a-z0-9]+|adventurer-[a-z0-9][a-z0-9-]*)$"
+    },
+    "tick": { "type": "integer", "minimum": 0 },
+    "origin": { "enum": ["agent", "human", "npc"] },
+    "orders": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/order" }
+    }
+  },
+  "required": ["actor", "tick", "origin", "orders"],
+  "additionalProperties": false,
+  "$defs": {
+    "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "count": { "type": "integer", "minimum": 1 },
+    "order": {
+      "oneOf": [
+        { "$ref": "#/$defs/move_units" },
+        { "$ref": "#/$defs/attack_region" },
+        { "$ref": "#/$defs/recruit" },
+        { "$ref": "#/$defs/fortify" },
+        { "$ref": "#/$defs/accept_quest" },
+        { "$ref": "#/$defs/spawn_adventurer" },
+        { "$ref": "#/$defs/claim_loot" }
+      ]
+    },
+    "move_units": {
+      "type": "object",
+      "properties": {
+        "action": { "const": "move_units" },
+        "from": { "$ref": "#/$defs/region_id" },
+        "to": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" }
+      },
+      "required": ["action", "from", "to", "count"],
+      "additionalProperties": false
+    },
+    "attack_region": {
+      "type": "object",
+      "properties": {
+        "action": { "const": "attack_region" },
+        "from": { "$ref": "#/$defs/region_id" },
+        "to": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" },
+        "target": { "const": "adventurer" }
+      },
+      "required": ["action", "from", "to", "count"],
+      "additionalProperties": false
+    },
+    "recruit": {
+      "type": "object",
+      "properties": {
+        "action": { "const": "recruit" },
+        "region": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" }
+      },
+      "required": ["action", "region", "count"],
+      "additionalProperties": false
+    },
+    "fortify": {
+      "type": "object",
+      "properties": {
+        "action": { "const": "fortify" },
+        "region": { "$ref": "#/$defs/region_id" }
+      },
+      "required": ["action", "region"],
+      "additionalProperties": false
+    },
+    "accept_quest": {
+      "type": "object",
+      "properties": {
+        "action": { "const": "accept_quest" },
+        "quest_id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["action", "quest_id"],
+      "additionalProperties": false
+    },
+    "spawn_adventurer": {
+      "type": "object",
+      "properties": {
+        "action": { "const": "spawn_adventurer" },
+        "name": { "type": "string", "minLength": 1 },
+        "origin": { "$ref": "#/$defs/region_id" }
+      },
+      "required": ["action", "name", "origin"],
+      "additionalProperties": false
+    },
+    "claim_loot": {
+      "type": "object",
+      "properties": {
+        "action": { "const": "claim_loot" },
+        "region": { "$ref": "#/$defs/region_id" }
+      },
+      "required": ["action", "region"],
+      "additionalProperties": false
+    }
+  }
+}

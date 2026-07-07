@@ -1,0 +1,8 @@
+# invalid: unknown parameter `to`
+actor: adventurer-sago
+tick: 6
+origin: human
+orders:
+  - action: claim_loot
+    region: arm-2-b
+    to: ring-1

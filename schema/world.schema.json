@@ -1,0 +1,345 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mythic-engine/schema/world.schema.json",
+  "title": "World state",
+  "description": "The assembled contents of /world/ at one tick. Bounds that are era.yml parameters (fortification cap, reputation scale, order caps) are enforced by the engine against the loaded config, not frozen into this schema.",
+  "type": "object",
+  "properties": {
+    "era": { "$ref": "#/$defs/era_config" },
+    "tick": { "type": "integer", "minimum": 0 },
+    "regions": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/region" } },
+      "additionalProperties": false
+    },
+    "forces": {
+      "type": "object",
+      "minProperties": 1,
+      "patternProperties": { "^force-[a-z0-9]+$": { "$ref": "#/$defs/force" } },
+      "additionalProperties": false
+    },
+    "adventurers": {
+      "type": "object",
+      "patternProperties": { "^adventurer-[a-z0-9][a-z0-9-]*$": { "$ref": "#/$defs/adventurer" } },
+      "additionalProperties": false
+    },
+    "quests": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "object",
+          "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/quest" } },
+          "additionalProperties": false
+        },
+        "resolved": {
+          "type": "object",
+          "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/quest" } },
+          "additionalProperties": false
+        }
+      },
+      "required": ["active", "resolved"],
+      "additionalProperties": false
+    },
+    "graveyard": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/graveyard_entry" }
+    }
+  },
+  "required": ["era", "tick", "regions", "forces", "adventurers", "quests", "graveyard"],
+  "additionalProperties": false,
+  "$defs": {
+    "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "region": {
+      "type": "object",
+      "properties": {
+        "id": { "$ref": "#/$defs/region_id" },
+        "owner": { "type": ["string", "null"] },
+        "yield": { "type": "integer", "minimum": 0 },
+        "adjacent": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/region_id" },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "units": { "type": "integer", "minimum": 0 },
+        "fortification": { "type": "integer", "minimum": 0 },
+        "loot": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "essence": { "type": "integer", "minimum": 1 },
+                "expires_tick": { "type": "integer", "minimum": 0 }
+              },
+              "required": ["essence", "expires_tick"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": ["id", "owner", "yield", "adjacent", "units", "fortification", "loot"],
+      "additionalProperties": false
+    },
+    "force": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
+        "persona": { "type": "string", "minLength": 1 },
+        "essence": { "type": "integer", "minimum": 0 },
+        "units": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["id", "persona", "essence", "units"],
+      "additionalProperties": false
+    },
+    "adventurer": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^adventurer-[a-z0-9][a-z0-9-]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "controller": { "type": "string", "pattern": "^github:[A-Za-z0-9-]+$" },
+        "essence": { "type": "integer", "minimum": 0 },
+        "position": { "$ref": "#/$defs/region_id" },
+        "units": { "const": 1 },
+        "reputation": {
+          "type": "object",
+          "patternProperties": { "^force-[a-z0-9]+$": { "type": "integer" } },
+          "additionalProperties": false
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "personal_quest": {
+          "type": "object",
+          "properties": {
+            "type": { "enum": ["accumulate", "survive", "chain", "back_winner"] },
+            "target": { "type": "string", "minLength": 1 }
+          },
+          "required": ["type", "target"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["id", "name", "controller", "essence", "position", "units", "reputation", "capabilities", "personal_quest"],
+      "additionalProperties": false
+    },
+    "quest": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "type": { "enum": ["raid", "blockade", "attrition", "dethrone"] },
+        "tier": { "enum": ["minor", "major"] },
+        "eligibility": { "enum": ["forces", "adventurer", "any"] },
+        "reward": { "type": "integer", "minimum": 0 },
+        "stake": { "type": "integer", "minimum": 0 },
+        "deadline": { "type": "integer", "minimum": 0 },
+        "max_claimants": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            { "const": "open" }
+          ]
+        },
+        "claimed_by": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "region": { "$ref": "#/$defs/region_id" },
+            "force": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
+            "n_ticks": { "type": "integer", "minimum": 1 },
+            "delta": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["id", "type", "tier", "eligibility", "reward", "stake", "deadline", "max_claimants", "claimed_by", "params"],
+      "additionalProperties": false
+    },
+    "graveyard_entry": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "pattern": "^adventurer-[a-z0-9][a-z0-9-]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "controller": { "type": "string", "pattern": "^github:[A-Za-z0-9-]+$" },
+        "died_tick": { "type": "integer", "minimum": 0 },
+        "era": { "type": "integer", "minimum": 1 },
+        "titles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        }
+      },
+      "required": ["id", "name", "controller", "died_tick", "era", "titles"],
+      "additionalProperties": false
+    },
+    "era_config": {
+      "type": "object",
+      "properties": {
+        "era": {
+          "type": "object",
+          "properties": {
+            "number": { "type": "integer", "minimum": 1 },
+            "seed": { "type": "integer" },
+            "tick_cap": { "type": "integer", "minimum": 1 },
+            "cadence": { "type": "string", "minLength": 1 }
+          },
+          "required": ["number", "seed", "tick_cap", "cadence"],
+          "additionalProperties": false
+        },
+        "coronation": {
+          "type": "object",
+          "properties": {
+            "supremacy_threshold": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+            "k_ticks": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["supremacy_threshold", "k_ticks"],
+          "additionalProperties": false
+        },
+        "orders": {
+          "type": "object",
+          "properties": {
+            "cap_force": { "type": "integer", "minimum": 1 },
+            "cap_adventurer": { "type": "integer", "minimum": 1 },
+            "npc_cap": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["cap_force", "cap_adventurer", "npc_cap"],
+          "additionalProperties": false
+        },
+        "economy": {
+          "type": "object",
+          "properties": {
+            "yield_neutral": { "type": "integer", "minimum": 0 },
+            "yield_capital": { "type": "integer", "minimum": 0 },
+            "yield_ring": { "type": "integer", "minimum": 0 },
+            "recruit_cost": { "type": "integer", "minimum": 1 },
+            "fortify_cost": { "type": "integer", "minimum": 1 },
+            "fortify_bonus": { "type": "integer", "minimum": 1 },
+            "fortify_cap": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_cap"],
+          "additionalProperties": false
+        },
+        "combat": {
+          "type": "object",
+          "properties": {
+            "tie_favors": { "const": "defender" }
+          },
+          "required": ["tie_favors"],
+          "additionalProperties": false
+        },
+        "adventurer": {
+          "type": "object",
+          "properties": {
+            "baseline_essence": { "type": "integer", "minimum": 0 },
+            "trade_cap_per_tick": { "type": "integer", "minimum": 0 },
+            "loot_burn_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+            "loot_dissipation_ticks": { "type": "integer", "minimum": 1 },
+            "kill_order_cost": { "type": "integer", "minimum": 1 },
+            "personal_quest": {
+              "type": "object",
+              "properties": {
+                "type": { "enum": ["accumulate", "survive", "chain", "back_winner"] },
+                "target": { "type": "string", "minLength": 1 }
+              },
+              "required": ["type", "target"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["baseline_essence", "trade_cap_per_tick", "loot_burn_fraction", "loot_dissipation_ticks", "kill_order_cost", "personal_quest"],
+          "additionalProperties": false
+        },
+        "reputation": {
+          "type": "object",
+          "properties": {
+            "scale_min": { "type": "integer" },
+            "scale_max": { "type": "integer" },
+            "initial": { "type": "integer" },
+            "decay_intra_era": { "type": "integer" },
+            "cataclysm_multiplier": { "type": "number", "minimum": 0, "maximum": 1 },
+            "deltas": {
+              "type": "object",
+              "properties": {
+                "trade_per_tick": { "type": "integer" },
+                "quest_damages_force": { "type": "integer" },
+                "quest_damages_force_rivals": { "type": "integer" },
+                "refuge_per_tick": { "type": "integer" }
+              },
+              "required": ["trade_per_tick", "quest_damages_force", "quest_damages_force_rivals", "refuge_per_tick"],
+              "additionalProperties": false
+            },
+            "thresholds": {
+              "type": "object",
+              "properties": {
+                "trade": { "type": "integer" },
+                "refuge": { "type": "integer" },
+                "errands_v2": { "type": "integer" }
+              },
+              "required": ["trade", "refuge", "errands_v2"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["scale_min", "scale_max", "initial", "decay_intra_era", "cataclysm_multiplier", "deltas", "thresholds"],
+          "additionalProperties": false
+        },
+        "quests": {
+          "type": "object",
+          "properties": {
+            "max_active_major": { "type": "integer", "minimum": 0 },
+            "max_active_minor": { "type": "integer", "minimum": 0 },
+            "window_ticks": { "type": "integer", "minimum": 1 },
+            "blockade_n_ticks": { "type": "integer", "minimum": 1 },
+            "attrition_delta": { "type": "integer", "minimum": 1 },
+            "rewards": {
+              "type": "object",
+              "properties": {
+                "raid": { "type": "integer", "minimum": 0 },
+                "blockade": { "type": "integer", "minimum": 0 },
+                "attrition": { "type": "integer", "minimum": 0 },
+                "dethrone": { "type": "integer", "minimum": 0 }
+              },
+              "required": ["raid", "blockade", "attrition", "dethrone"],
+              "additionalProperties": false
+            },
+            "triggers": {
+              "type": "object",
+              "properties": {
+                "supremacy_minor": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                "supremacy_major": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+                "adventurer_death_vengeance": { "enum": ["raid", "blockade", "attrition", "dethrone"] }
+              },
+              "required": ["supremacy_minor", "supremacy_major", "adventurer_death_vengeance"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["max_active_major", "max_active_minor", "window_ticks", "blockade_n_ticks", "attrition_delta", "rewards", "triggers"],
+          "additionalProperties": false
+        },
+        "map": {
+          "type": "object",
+          "properties": {
+            "arms": { "type": "integer", "minimum": 3 },
+            "regions_per_arm": { "type": "integer", "minimum": 1 },
+            "ring_size": { "type": "integer", "minimum": 3 }
+          },
+          "required": ["arms", "regions_per_arm", "ring_size"],
+          "additionalProperties": false
+        },
+        "budget": {
+          "type": "object",
+          "properties": {
+            "tokens_per_era": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["tokens_per_era"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["era", "coronation", "orders", "economy", "combat", "adventurer", "reputation", "quests", "map", "budget"],
+      "additionalProperties": false
+    }
+  }
+}

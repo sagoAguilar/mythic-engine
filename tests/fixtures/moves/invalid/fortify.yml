@@ -1,0 +1,8 @@
+# invalid: fortify takes no count parameter
+actor: force-1
+tick: 4
+origin: agent
+orders:
+  - action: fortify
+    region: capital-1
+    count: 2

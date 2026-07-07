@@ -1,0 +1,8 @@
+# valid: the only move with no prior entity
+actor: adventurer-sago
+tick: 0
+origin: human
+orders:
+  - action: spawn_adventurer
+    name: Wanderer
+    origin: ring-1

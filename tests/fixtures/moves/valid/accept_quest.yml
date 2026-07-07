@@ -1,0 +1,6 @@
+actor: adventurer-sago
+tick: 5
+origin: human
+orders:
+  - action: accept_quest
+    quest_id: raid-7-1

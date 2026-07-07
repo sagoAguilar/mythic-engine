@@ -1,0 +1,7 @@
+actor: force-3
+tick: 3
+origin: agent
+orders:
+  - action: recruit
+    region: capital-3
+    count: 2

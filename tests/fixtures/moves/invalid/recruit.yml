@@ -1,0 +1,8 @@
+# invalid: count below minimum of 1
+actor: force-3
+tick: 3
+origin: agent
+orders:
+  - action: recruit
+    region: capital-3
+    count: 0

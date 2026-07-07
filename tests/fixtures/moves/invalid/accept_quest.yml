@@ -1,0 +1,6 @@
+# invalid: missing required parameter `quest_id`
+actor: adventurer-sago
+tick: 5
+origin: human
+orders:
+  - action: accept_quest

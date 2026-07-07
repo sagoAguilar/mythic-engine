@@ -1,0 +1,7 @@
+# invalid: missing required parameter `origin` (spawn region)
+actor: adventurer-sago
+tick: 0
+origin: human
+orders:
+  - action: spawn_adventurer
+    name: Wanderer

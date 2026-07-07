@@ -1,0 +1,9 @@
+# username freed by permadeath (graveyard record); respawn into the
+# territory of the strictly least-dominant force (force-3, 2 regions)
+actor: adventurer-elder
+tick: 1
+origin: human
+orders:
+  - action: spawn_adventurer
+    name: Elder Reborn
+    origin: arm-3-a

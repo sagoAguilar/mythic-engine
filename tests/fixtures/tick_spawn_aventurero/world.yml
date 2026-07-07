@@ -1,0 +1,224 @@
+adventurers: {}
+combats_last_tick: []
+era:
+  adventurer:
+    baseline_essence: 5
+    kill_order_cost: 1
+    loot_burn_fraction: 0.5
+    loot_dissipation_ticks: 5
+    personal_quest:
+      target: era
+      type: survive
+    trade_cap_per_tick: 3
+  budget:
+    tokens_per_era: 0
+  combat:
+    tie_favors: defender
+  coronation:
+    k_ticks: 10
+    supremacy_threshold: 0.45
+  economy:
+    fortify_bonus: 2
+    fortify_cap: 3
+    fortify_cost: 5
+    recruit_cost: 2
+    yield_capital: 2
+    yield_neutral: 1
+    yield_ring: 2
+  era:
+    cadence: manual
+    number: 1
+    seed: 20260706
+    tick_cap: 100
+  map:
+    arms: 3
+    regions_per_arm: 3
+    ring_size: 3
+  orders:
+    cap_adventurer: 2
+    cap_force: 3
+    npc_cap: 1
+  quests:
+    attrition_delta: 4
+    blockade_n_ticks: 3
+    max_active_major: 1
+    max_active_minor: 2
+    rewards:
+      attrition: 10
+      blockade: 5
+      dethrone: 15
+      raid: 6
+    triggers:
+      adventurer_death_vengeance: raid
+      supremacy_major: 0.55
+      supremacy_minor: 0.45
+    window_ticks: 8
+  reputation:
+    cataclysm_multiplier: 0.5
+    decay_intra_era: 0
+    deltas:
+      quest_damages_force: -15
+      quest_damages_force_rivals: 10
+      refuge_per_tick: 1
+      trade_per_tick: 2
+    initial: 0
+    scale_max: 100
+    scale_min: -100
+    thresholds:
+      errands_v2: 40
+      refuge: 25
+      trade: 10
+forces:
+  force-1:
+    essence: 10
+    id: force-1
+    persona: personas/force-1.md
+    units: 7
+  force-2:
+    essence: 10
+    id: force-2
+    persona: personas/force-2.md
+    units: 5
+  force-3:
+    essence: 10
+    id: force-3
+    persona: personas/force-3.md
+    units: 3
+graveyard:
+- controller: github:elder
+  died_tick: 42
+  era: 1
+  id: adventurer-elder
+  name: Elder
+  titles: []
+quests:
+  active: {}
+  resolved: {}
+regions:
+  arm-1-a:
+    adjacent:
+    - capital-1
+    - ring-1
+    fortification: 0
+    id: arm-1-a
+    loot: null
+    owner: force-1
+    units: 1
+    yield: 1
+  arm-1-b:
+    adjacent:
+    - capital-1
+    - ring-1
+    fortification: 0
+    id: arm-1-b
+    loot: null
+    owner: force-1
+    units: 1
+    yield: 1
+  arm-2-a:
+    adjacent:
+    - capital-2
+    - ring-2
+    fortification: 0
+    id: arm-2-a
+    loot: null
+    owner: force-2
+    units: 1
+    yield: 1
+  arm-2-b:
+    adjacent:
+    - capital-2
+    - ring-2
+    fortification: 0
+    id: arm-2-b
+    loot: null
+    owner: force-2
+    units: 1
+    yield: 1
+  arm-3-a:
+    adjacent:
+    - capital-3
+    - ring-3
+    fortification: 0
+    id: arm-3-a
+    loot: null
+    owner: force-3
+    units: 1
+    yield: 1
+  arm-3-b:
+    adjacent:
+    - capital-3
+    - ring-3
+    fortification: 0
+    id: arm-3-b
+    loot: null
+    owner: null
+    units: 0
+    yield: 1
+  capital-1:
+    adjacent:
+    - arm-1-a
+    - arm-1-b
+    fortification: 0
+    id: capital-1
+    loot: null
+    owner: force-1
+    units: 3
+    yield: 2
+  capital-2:
+    adjacent:
+    - arm-2-a
+    - arm-2-b
+    fortification: 0
+    id: capital-2
+    loot: null
+    owner: force-2
+    units: 3
+    yield: 2
+  capital-3:
+    adjacent:
+    - arm-3-a
+    - arm-3-b
+    fortification: 0
+    id: capital-3
+    loot: null
+    owner: force-3
+    units: 2
+    yield: 2
+  ring-1:
+    adjacent:
+    - arm-1-a
+    - arm-1-b
+    - ring-2
+    - ring-3
+    fortification: 0
+    id: ring-1
+    loot: null
+    owner: force-1
+    units: 2
+    yield: 2
+  ring-2:
+    adjacent:
+    - arm-2-a
+    - arm-2-b
+    - ring-1
+    - ring-3
+    fortification: 0
+    id: ring-2
+    loot: null
+    owner: null
+    units: 0
+    yield: 2
+  ring-3:
+    adjacent:
+    - arm-3-a
+    - arm-3-b
+    - ring-1
+    - ring-2
+    fortification: 0
+    id: ring-3
+    loot: null
+    owner: null
+    units: 0
+    yield: 2
+tick: 0

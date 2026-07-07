@@ -1,0 +1,11 @@
+# first spawn valid (neutral origin); second rejected: entity now alive
+actor: adventurer-sago
+tick: 1
+origin: human
+orders:
+  - action: spawn_adventurer
+    name: Wanderer
+    origin: ring-3
+  - action: spawn_adventurer
+    name: Second Try
+    origin: ring-2

@@ -1,0 +1,13 @@
+# the spawn order is rejected (adventurer-only); the move order is not
+# phase 2's business and produces no rejection here
+actor: force-1
+tick: 1
+origin: agent
+orders:
+  - action: spawn_adventurer
+    name: Impostor
+    origin: ring-2
+  - action: move_units
+    from: capital-1
+    to: arm-1-a
+    count: 1

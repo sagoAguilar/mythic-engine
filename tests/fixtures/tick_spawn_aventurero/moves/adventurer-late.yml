@@ -1,0 +1,8 @@
+# rejected: force-1 is not the least-dominant force
+actor: adventurer-late
+tick: 1
+origin: human
+orders:
+  - action: spawn_adventurer
+    name: Latecomer
+    origin: arm-1-a

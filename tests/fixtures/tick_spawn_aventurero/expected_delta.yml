@@ -1,0 +1,44 @@
+# Expected phase-2 delta. Baseline essence, initial reputation, and the
+# personal quest come from era.yml; controller derives from the actor
+# handle (the workflow has already pinned handle == pr.author upstream).
+spawned:
+  adventurer-elder:
+    id: adventurer-elder
+    name: Elder Reborn
+    controller: github:elder
+    essence: 5
+    position: arm-3-a
+    units: 1
+    reputation:
+      force-1: 0
+      force-2: 0
+      force-3: 0
+    capabilities: []
+    personal_quest:
+      type: survive
+      target: era
+  adventurer-sago:
+    id: adventurer-sago
+    name: Wanderer
+    controller: github:sago
+    essence: 5
+    position: ring-3
+    units: 1
+    reputation:
+      force-1: 0
+      force-2: 0
+      force-3: 0
+    capabilities: []
+    personal_quest:
+      type: survive
+      target: era
+rejected_orders:
+  - actor: adventurer-late
+    index: 0
+    reason: "spawn_adventurer: arm-1-a is not spawnable (neutral or strictly least-dominant force territory only)"
+  - actor: adventurer-sago
+    index: 1
+    reason: "spawn_adventurer: adventurer-sago already has a living entity"
+  - actor: force-1
+    index: 0
+    reason: "spawn_adventurer: only an adventurer actor may spawn"

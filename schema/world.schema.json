@@ -50,9 +50,23 @@
     "graveyard": {
       "type": "array",
       "items": { "$ref": "#/$defs/graveyard_entry" }
+    },
+    "supremacy": {
+      "description": "Phase-10 output read by phase 8 (dethrone) and phase 9 (triggers): last computed leader and per-force supremacy streaks.",
+      "type": "object",
+      "properties": {
+        "leader": { "type": ["string", "null"] },
+        "streaks": {
+          "type": "object",
+          "patternProperties": { "^force-[a-z0-9]+$": { "type": "integer", "minimum": 0 } },
+          "additionalProperties": false
+        }
+      },
+      "required": ["leader", "streaks"],
+      "additionalProperties": false
     }
   },
-  "required": ["era", "tick", "combats_last_tick", "regions", "forces", "adventurers", "quests", "graveyard"],
+  "required": ["era", "tick", "combats_last_tick", "regions", "forces", "adventurers", "quests", "graveyard", "supremacy"],
   "additionalProperties": false,
   "$defs": {
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
@@ -152,18 +166,29 @@
           "items": { "type": "string" },
           "uniqueItems": true
         },
+        "progress": {
+          "description": "Per-claimant objective progress (e.g. blockade occupation streaks).",
+          "type": "object",
+          "patternProperties": {
+            "^(force-[a-z0-9]+|adventurer-[a-z0-9][a-z0-9-]*)$": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
         "params": {
           "type": "object",
           "properties": {
             "region": { "$ref": "#/$defs/region_id" },
             "force": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
             "n_ticks": { "type": "integer", "minimum": 1 },
-            "delta": { "type": "integer", "minimum": 1 }
+            "delta": { "type": "integer", "minimum": 1 },
+            "units_at_spawn": { "type": "integer", "minimum": 0 }
           },
           "additionalProperties": false
-        }
+        },
+        "status": { "enum": ["success", "failure"] },
+        "resolved_tick": { "type": "integer", "minimum": 0 }
       },
-      "required": ["id", "type", "tier", "eligibility", "reward", "stake", "deadline", "max_claimants", "claimed_by", "params"],
+      "required": ["id", "type", "tier", "eligibility", "reward", "stake", "deadline", "max_claimants", "claimed_by", "progress", "params"],
       "additionalProperties": false
     },
     "graveyard_entry": {

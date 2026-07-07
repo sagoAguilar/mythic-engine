@@ -221,4 +221,10 @@ regions:
     owner: null
     units: 0
     yield: 2
+supremacy:
+  leader: null
+  streaks:
+    force-1: 0
+    force-2: 0
+    force-3: 0
 tick: 0

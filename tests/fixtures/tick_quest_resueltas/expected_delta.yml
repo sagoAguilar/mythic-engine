@@ -1,0 +1,52 @@
+# Expected phase-8 delta. Verification first (accept-after-verify):
+#   raid-5-1  success: ring-1 owner (force-2) != force-1; sago +6 reward,
+#     reputation -15 with the damaged force, +10 with its rivals
+#   blockade-4-2 progressing: force-3 occupies ring-3, streak 1 -> 2 of 3
+#   attrition-2-3 failure: expired (deadline 0 < tick 1), force-2 at 9 > 8
+#   raid-1-4 failure: expired; claimant adventurer-broke at 0 essence dies
+#   dethrone-6-5 stays: streak 2 != 0, deadline 10
+# Then acceptance: collision on dethrone-6-5's single slot by
+# sha256(seed:tick:quest_id:actor): force-1 (0e4ae686...) beats
+# force-3 (526bae6f...); stake 2 charged to the winner.
+essence_changes:
+  adventurer-sago: 6
+  force-1: -2
+reputation_changes:
+  adventurer-sago:
+    force-1: -15
+    force-2: 10
+    force-3: 10
+quest_progress:
+  blockade-4-2:
+    force-3: 2
+quests_resolved:
+  attrition-2-3: failure
+  raid-1-4: failure
+  raid-5-1: success
+quest_claims:
+  dethrone-6-5:
+    - force-1
+adventurer_deaths:
+  - id: adventurer-broke
+    region: ring-3
+    killer: null
+graveyard_additions:
+  - id: adventurer-broke
+    name: Penniless
+    controller: github:broke
+    died_tick: 1
+    era: 1
+    titles: []
+rejected_orders:
+  - actor: adventurer-sago
+    index: 0
+    reason: "accept_quest: blockade-4-2 quota is full"
+  - actor: adventurer-sago
+    index: 1
+    reason: "accept_quest: dethrone-6-5 eligibility is forces"
+  - actor: force-1
+    index: 0
+    reason: "accept_quest: attrition-2-3 is not an active quest"
+  - actor: force-3
+    index: 0
+    reason: "accept_quest: dethrone-6-5 quota filled by seeded order"

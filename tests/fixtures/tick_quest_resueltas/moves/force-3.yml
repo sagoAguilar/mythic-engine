@@ -1,0 +1,7 @@
+# loses the seeded collision for dethrone-6-5's single slot
+actor: force-3
+tick: 1
+origin: agent
+orders:
+  - action: accept_quest
+    quest_id: dethrone-6-5

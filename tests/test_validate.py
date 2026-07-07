@@ -112,6 +112,7 @@ def _valid_world():
                     "deadline": 15,
                     "max_claimants": "open",
                     "claimed_by": [],
+                    "progress": {},
                     "params": {"region": "arm-2-a"},
                 }
             },
@@ -127,6 +128,10 @@ def _valid_world():
                 "titles": [],
             }
         ],
+        "supremacy": {
+            "leader": None,
+            "streaks": {f"force-{i}": 0 for i in (1, 2, 3)},
+        },
     }
 
 

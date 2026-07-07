@@ -1,0 +1,9 @@
+# both rejected: blockade quota already full; dethrone is forces-only
+actor: adventurer-sago
+tick: 1
+origin: human
+orders:
+  - action: accept_quest
+    quest_id: blockade-4-2
+  - action: accept_quest
+    quest_id: dethrone-6-5

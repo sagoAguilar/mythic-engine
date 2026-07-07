@@ -1,20 +1,36 @@
 adventurers:
+  adventurer-broke:
+    capabilities: []
+    controller: github:broke
+    essence: 0
+    id: adventurer-broke
+    name: Penniless
+    personal_quest:
+      target: era
+      type: survive
+    position: ring-3
+    reputation:
+      force-1: 0
+      force-2: 0
+      force-3: 0
+    units: 1
   adventurer-sago:
     capabilities: []
-    controller: github:sagoAguilar
+    controller: github:sago
     essence: 5
     id: adventurer-sago
     name: Wanderer
     personal_quest:
       target: era
       type: survive
-    position: arm-2-b
+    position: arm-1-b
     reputation:
       force-1: 0
       force-2: 0
       force-3: 0
     units: 1
-combats_last_tick: []
+combats_last_tick:
+- ring-1
 era:
   adventurer:
     baseline_essence: 5
@@ -88,20 +104,95 @@ forces:
     essence: 10
     id: force-1
     persona: personas/force-1.md
-    units: 8
+    units: 5
   force-2:
     essence: 10
     id: force-2
     persona: personas/force-2.md
-    units: 10
+    units: 9
   force-3:
     essence: 10
     id: force-3
     persona: personas/force-3.md
-    units: 5
+    units: 4
 graveyard: []
 quests:
-  active: {}
+  active:
+    attrition-2-3:
+      claimed_by:
+      - force-1
+      deadline: 0
+      eligibility: forces
+      id: attrition-2-3
+      max_claimants: 1
+      params:
+        delta: 4
+        force: force-2
+        units_at_spawn: 12
+      progress: {}
+      reward: 10
+      stake: 2
+      tier: major
+      type: attrition
+    blockade-4-2:
+      claimed_by:
+      - force-3
+      deadline: 9
+      eligibility: any
+      id: blockade-4-2
+      max_claimants: 1
+      params:
+        n_ticks: 3
+        region: ring-3
+      progress:
+        force-3: 1
+      reward: 5
+      stake: 1
+      tier: minor
+      type: blockade
+    dethrone-6-5:
+      claimed_by: []
+      deadline: 10
+      eligibility: forces
+      id: dethrone-6-5
+      max_claimants: 1
+      params:
+        force: force-2
+      progress: {}
+      reward: 15
+      stake: 2
+      tier: major
+      type: dethrone
+    raid-1-4:
+      claimed_by:
+      - adventurer-broke
+      deadline: 0
+      eligibility: any
+      id: raid-1-4
+      max_claimants: open
+      params:
+        force: force-3
+        region: capital-3
+      progress: {}
+      reward: 6
+      stake: 1
+      tier: minor
+      type: raid
+    raid-5-1:
+      claimed_by:
+      - adventurer-sago
+      deadline: 8
+      eligibility: any
+      id: raid-5-1
+      max_claimants: open
+      params:
+        force: force-1
+        region: ring-1
+      progress: {}
+      reward: 6
+      stake: 1
+      tier: minor
+      type: raid
   resolved: {}
 regions:
   arm-1-a:
@@ -121,8 +212,8 @@ regions:
     fortification: 0
     id: arm-1-b
     loot: null
-    owner: null
-    units: 0
+    owner: force-1
+    units: 1
     yield: 1
   arm-2-a:
     adjacent:
@@ -152,7 +243,7 @@ regions:
     id: arm-3-a
     loot: null
     owner: force-3
-    units: 2
+    units: 1
     yield: 1
   arm-3-b:
     adjacent:
@@ -161,8 +252,8 @@ regions:
     fortification: 0
     id: arm-3-b
     loot: null
-    owner: force-3
-    units: 1
+    owner: null
+    units: 0
     yield: 1
   capital-1:
     adjacent:
@@ -172,7 +263,7 @@ regions:
     id: capital-1
     loot: null
     owner: force-1
-    units: 4
+    units: 3
     yield: 2
   capital-2:
     adjacent:
@@ -203,8 +294,8 @@ regions:
     fortification: 0
     id: ring-1
     loot: null
-    owner: force-1
-    units: 3
+    owner: force-2
+    units: 2
     yield: 2
   ring-2:
     adjacent:
@@ -216,7 +307,7 @@ regions:
     id: ring-2
     loot: null
     owner: force-2
-    units: 5
+    units: 2
     yield: 2
   ring-3:
     adjacent:
@@ -227,13 +318,13 @@ regions:
     fortification: 0
     id: ring-3
     loot: null
-    owner: null
-    units: 0
+    owner: force-3
+    units: 1
     yield: 2
 supremacy:
-  leader: null
+  leader: force-2
   streaks:
     force-1: 0
-    force-2: 0
+    force-2: 2
     force-3: 0
 tick: 0

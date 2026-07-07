@@ -1,0 +1,10 @@
+# attrition-2-3 resolves (failure) this tick before acceptance runs;
+# the dethrone acceptance collides with force-3 and wins the seeded order
+actor: force-1
+tick: 1
+origin: agent
+orders:
+  - action: accept_quest
+    quest_id: attrition-2-3
+  - action: accept_quest
+    quest_id: dethrone-6-5

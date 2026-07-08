@@ -1,0 +1,8 @@
+actor: adventurer-sago
+tick: 2
+origin: human
+orders:
+  - action: move_units
+    from: capital-2
+    to: arm-2-b
+    count: 1

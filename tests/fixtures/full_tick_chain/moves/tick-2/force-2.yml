@@ -1,0 +1,6 @@
+actor: force-2
+tick: 2
+origin: agent
+orders:
+  - action: fortify
+    region: capital-2

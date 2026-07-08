@@ -1,0 +1,7 @@
+actor: adventurer-elder
+tick: 1
+origin: human
+orders:
+  - action: spawn_adventurer
+    name: Elder Reborn
+    origin: arm-1-b

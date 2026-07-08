@@ -1,0 +1,16 @@
+actor: force-3
+tick: 1
+origin: agent
+orders:
+  - action: move_units
+    from: arm-3-a
+    to: ring-3
+    count: 2
+  - action: move_units
+    from: capital-3
+    to: ring-3
+    count: 1
+  - action: move_units
+    from: arm-3-b
+    to: ring-3
+    count: 5

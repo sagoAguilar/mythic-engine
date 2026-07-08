@@ -1,0 +1,9 @@
+adjacent:
+- arm-2-a
+- arm-2-b
+fortification: 0
+id: capital-2
+loot: null
+owner: force-2
+units: 3
+yield: 2

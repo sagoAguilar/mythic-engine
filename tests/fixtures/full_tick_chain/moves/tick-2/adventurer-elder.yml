@@ -1,0 +1,8 @@
+actor: adventurer-elder
+tick: 2
+origin: human
+orders:
+  - action: move_units
+    from: arm-1-b
+    to: ring-1
+    count: 1

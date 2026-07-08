@@ -1,0 +1,14 @@
+capabilities: []
+controller: github:sagoAguilar
+essence: 5
+id: adventurer-sago
+name: Wanderer
+personal_quest:
+  target: era
+  type: survive
+position: arm-2-b
+reputation:
+  force-1: 0
+  force-2: 0
+  force-3: 0
+units: 1

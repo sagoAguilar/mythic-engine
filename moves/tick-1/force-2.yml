@@ -1,0 +1,8 @@
+actor: force-2
+tick: 1
+origin: agent
+orders:
+  - action: move_units
+    from: capital-2
+    to: arm-2-a
+    count: 1

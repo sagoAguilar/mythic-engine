@@ -27,6 +27,9 @@ era:
       target: era
       type: survive
     trade_cap_per_tick: 3
+  bootstrap:
+    starting_essence: 10
+    starting_units_capital: 3
   budget:
     tokens_per_era: 0
   combat:

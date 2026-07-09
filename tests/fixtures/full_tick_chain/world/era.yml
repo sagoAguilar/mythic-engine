@@ -80,3 +80,9 @@ map:
 
 budget:
   tokens_per_era: 0            # 0 = uncapped for tracer bullet; set before first agent era
+
+bootstrap:                     # PROVISIONAL: not specified in docs/intent.md;
+                                # bootstrap-only values for seeding era-1 tick-0
+                                # state, not calibrated. Revisit before real play.
+  starting_essence: 10         # per force, at tick 0
+  starting_units_capital: 3    # per capital, at tick 0

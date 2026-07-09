@@ -143,6 +143,12 @@ class Budget:
 
 
 @dataclass(frozen=True)
+class Bootstrap:
+    starting_essence: int
+    starting_units_capital: int
+
+
+@dataclass(frozen=True)
 class EraConfig:
     era: Era
     coronation: Coronation
@@ -154,6 +160,7 @@ class EraConfig:
     quests: Quests
     map: Map
     budget: Budget
+    bootstrap: Bootstrap
 
 
 def _build(cls: type, data: object, path: str):

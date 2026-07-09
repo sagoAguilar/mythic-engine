@@ -1,0 +1,11 @@
+adjacent:
+- arm-2-a
+- arm-2-b
+- ring-1
+- ring-3
+fortification: 0
+id: ring-2
+loot: null
+owner: null
+units: 0
+yield: 2

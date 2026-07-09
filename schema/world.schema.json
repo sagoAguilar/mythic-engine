@@ -376,9 +376,18 @@
           },
           "required": ["tokens_per_era"],
           "additionalProperties": false
+        },
+        "bootstrap": {
+          "type": "object",
+          "properties": {
+            "starting_essence": { "type": "integer", "minimum": 0 },
+            "starting_units_capital": { "type": "integer", "minimum": 0 }
+          },
+          "required": ["starting_essence", "starting_units_capital"],
+          "additionalProperties": false
         }
       },
-      "required": ["era", "coronation", "orders", "economy", "combat", "adventurer", "reputation", "quests", "map", "budget"],
+      "required": ["era", "coronation", "orders", "economy", "combat", "adventurer", "reputation", "quests", "map", "budget", "bootstrap"],
       "additionalProperties": false
     }
   }

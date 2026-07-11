@@ -4,6 +4,6 @@ adjacent:
 fortification: 0
 id: arm-1-a
 loot: null
-owner: null
-units: 0
+owner: force-1
+units: 1
 yield: 1

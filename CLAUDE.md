@@ -28,6 +28,20 @@ The master test: resolving the same fixture twice produces byte-identical output
 - Small diffs. One phase, one PR. Do not build the agent client until the tracer bullet passes: 3 hardcoded move PRs → tick resolved on main with chronicle → local replay byte-identical.
 - Chronicle output must match the template in `docs/intent.md` exactly — it is a parsing contract for the eval harness, not prose.
 
+## Git identity and commit verification
+
+Commits made through different tools in this project end up with different authors, and that is expected, not a bug to silently fix:
+
+- Direct local commits (Bash `git commit`) are attributed to whatever identity the environment's git config holds at the time.
+- Commits made via the GitHub API (`create_or_update_file`, PR merges) are attributed to the authenticated GitHub account behind that token, or to GitHub itself for merge commits (`noreply@github.com`).
+
+A repo's git-hook tooling may flag some of these as "Unverified" on GitHub (missing signature, or committer email not matching a specific identity) and suggest `git config` + `git commit --amend --reset-author` + rebase + force-push as the fix. **Do not run that sequence.** Two hard constraints override the hook's suggestion:
+
+- `git config` is never modified by the agent (global operating constraint, not project-specific).
+- History that is already pushed to a shared branch (`main`) is not rewritten or force-pushed without explicit, scoped user authorization — and PR-merge commits in particular can't be cleanly "amended," since a rebase across them restructures the merge DAG, not just the author line.
+
+If this comes up again: surface the hook output to the user plainly, explain which commits are whose (yours vs. GitHub's vs. the human's own API-authenticated identity), and let them decide whether a rewrite is worth the force-push. Default to leaving history as-is — it is accurate, even when unsigned.
+
 ## Non-goals (do not build)
 
 Fog of war, real subagent delegation, force-issued quests, inheritance on death, mechanical faction asymmetry, Telegram bot, multi-resource economy, spectator frontend. All explicitly deferred in `docs/intent.md` boundaries. If a task seems to need one of these, invoke the stop rule.

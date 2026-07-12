@@ -1,0 +1,55 @@
+name: Resolve tick
+
+# Thin shell around engine.resolve() (CLAUDE.md: "the GitHub Actions
+# workflow is a thin shell around this call; all logic must be testable
+# offline"). This file only orchestrates: checkout, run, commit, push.
+# No adjudication logic lives here.
+
+on:
+  workflow_dispatch: {}
+  # world/era.yml's era.cadence is "manual" for era 1, so this workflow
+  # only fires on demand. When an era switches era.cadence to a cron
+  # expression, add a matching `schedule:` trigger here - GitHub Actions
+  # parses triggers before checkout, so it cannot read era.yml to derive
+  # its own schedule. The cron string must be duplicated here and kept
+  # in sync with era.yml by hand.
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resolve-tick
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pyyaml jsonschema
+
+      - name: Resolve tick
+        run: python scripts/run_resolve.py
+
+      - name: Commit and push next state
+        run: |
+          git config user.name "mythic-engine-arbiter"
+          git config user.email "arbiter@users.noreply.github.com"
+          git add world chronicle
+          if git diff --cached --quiet; then
+            echo "Nothing to commit; resolve produced no changes."
+            exit 0
+          fi
+          TICK=$(cat world/tick.txt)
+          git commit -m "Resolve tick ${TICK}"
+          git push origin HEAD:main

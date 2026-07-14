@@ -7,6 +7,7 @@ dependencies = ["pyyaml", "jsonschema"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
+agent = ["anthropic>=0.40,<1"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

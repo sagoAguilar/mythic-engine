@@ -68,6 +68,34 @@ adventurer to interact through. Worth a real conversation before building
 either version - which one (if any) is intended matters for how it gets
 scoped.
 
+### 3. Narrate results mythically, not mechanically
+
+Tick recaps in this sandbox session (both to the human adventurer and
+between forces) were reported flat and technical - "defender power hit
+4, attacker fully wiped, sup_atq=0." Functionally correct, but it reads
+like a combat log, not a mythic world. The persona work in
+`personas/force-*.md` only pays off if the *telling* of events matches
+that register too - ties favoring the defender, a collision resolved by
+seeded hash order, an overextended fortress falling - these are strong
+dramatic beats and deserve to be narrated as one.
+
+**Important distinction, do not conflate the two:**
+- The mechanical `/chronicle/tick-N.md` itself must stay exactly as
+  frozen in `docs/intent.md`'s phase-11 template - raw pipe tables, "sin
+  prosa," because it's a parsing contract for the harness/eval, not a
+  story. That does not change.
+- What changes is the *human-facing narration layered on top* - what
+  gets said in a playtest session recap, and eventually what `/lore/`
+  generates from the chronicle. That's already spec'd as write-only,
+  LLM-authored, and never read by adjudication - exactly the right
+  place for epic/mythical framing. This is a request to lean into that
+  register when narrating results, not a request to change what the
+  engine writes.
+
+Applying this going forward in this sandbox: tick summaries should read
+like saga rather than a battle report, while every number in them still
+has to trace back to the real chronicle/state, no invented facts.
+
 ## Format going forward
 
 Append dated entries below as more sandbox sessions turn up ideas. Keep

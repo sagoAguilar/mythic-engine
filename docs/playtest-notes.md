@@ -180,6 +180,116 @@ Lowest-risk idea in this session precisely because it stays entirely on
 the narration side of the golden-rule boundary - could be prototyped in
 chat narration (as already started) before it's ever worth scripting.
 
+### 8. The Adventurers' Guild — per-force rank ladder + capability rewards
+
+**Supersedes idea #1.** Started as "give the adventurer a small always-
+available quest," grew through discussion into a full guild system once
+it became clear a single `personal_quest` reframe (the option this doc
+originally leaned toward) couldn't carry varied quest types, multiple
+locations, and a rank ladder - `personal_quest` is also confirmed inert
+in the current engine (grepped: set once at spawn in `phase2_spawn.py`,
+never read again anywhere). The guild needs real machinery either way,
+so it's shaped to reuse what already exists rather than invent new
+state.
+
+**Converged shape:**
+- **Source**: a 4th deterministic quest source, alongside the rubber-
+  band engine and world-event triggers - reuses the existing
+  `quests/active/` schema and `accept_quest` action, `eligibility:
+  adventurer` only.
+- **Explicitly not "encargos"**: `docs/intent.md` defers "fuerzas como
+  emisoras de encargos" to v2 on purpose, and there's already a
+  reputation threshold (`errands_v2: 40`) reserved for it. The guild
+  authors quests deterministically; forces never choose or issue them,
+  even though boards are located at each force's capital and may be
+  persona-flavored.
+- **Location**: one guild, a board at each of the 3 capitals. Quests
+  generated per `(seed, tick, force_id)`, same seeding discipline as
+  everything else - gives the adventurer a real reason to visit all
+  three corners of the map, not just the one they spawned near.
+- **Quest type candidates** (not finalized): travel A→B with path
+  constraints (e.g. neutral-only vs. must-cross-hostile-territory);
+  bodyguard / hold-a-region-for-N-ticks (can likely reuse `blockade`'s
+  existing consecutive-occupation tracking rather than new state);
+  scout-the-three-rings.
+- **Reward hook**: completing a quest at force X's capital nudges
+  reputation *with* force X - reuses the existing per-force
+  `reputation.deltas` mechanism, no new score invented.
+- **Rank: per-force (decided)** - three separate standings, not one
+  global ladder. Chosen because reputation is already tracked per-force
+  in the frozen design, so per-force rank reads off something that
+  already exists rather than requiring a new aggregate.
+- **Rank reward: capabilities (decided)** - `docs/intent.md`'s
+  "Crecimiento" row already defines capabilities as discrete unlocks,
+  each a new schema action, currently completely unused (every
+  adventurer spawns with `capabilities: []`, nothing ever fills it).
+  Candidate unlocks, none chosen yet: a fast-travel order (2 regions in
+  one move instead of 1); a "sanctuary" capability granting temporary
+  hunt-immunity; a second concurrent quest slot.
+
+**Open questions before this is spec-worthy:**
+1. Exact quest catalog - concrete mechanics per type, plus real
+   reward/stake/deadline numbers (none invented here, per the stop
+   rule).
+2. How rank is actually computed at a given capital - a raw reputation
+   threshold, a separate completions counter, or both together.
+3. Rank tier names and count, and which tier unlocks which capability.
+4. The new `docs/intent.md` "Fuentes" table row this needs, and the
+   adventurer schema fields to carry per-force rank/progress
+   (`world.schema.json`'s `adventurer` def would need new fields beyond
+   today's flat `reputation` map).
+
+### 9. The Strategist — force-hireable deterministic intel subscription
+
+Prompted by a proposal to let forces "remove some fog of war" for a
+price. Flagged immediately: fog of war isn't just unbuilt in v1, it's
+an explicit non-goal (`docs/intent.md` boundaries: "Niebla de guerra →
+v2"), and the "Información" row makes v1 perfect-information for
+everyone on purpose - there's no fog to partially sell back. The one
+thing genuinely hidden today is rival *personas*, deliberately kept
+secret as a zero-cost theory-of-mind signal ("señal de teoría de mente
+a costo cero"); a mechanic that lets a force buy insight into a rival's
+temperament instead of inferring it from behavior would compete
+directly with the capability the project exists to measure - flagged as
+a real tension, not a small compatibility question, per CLAUDE.md's
+rule that every new mechanic must justify itself as a measurable
+capability signal or be rejected.
+
+**Landed instead on a version that reveals nothing hidden**: intel
+derived entirely from data that's already public.
+
+**Converged shape:**
+- A force-only action (name TBD - `hire_strategist` as a placeholder)
+  that, while active, adds a deterministic "situation report" covering
+  *both* rival forces to the hiring force's own context for its next
+  tick's decision.
+- Report contents must be a **fixed, deterministic catalog** - the same
+  rigor as F1-F4, not "AI judgment about the enemy." Candidates:
+  aggression rate (attacks per tick over a trailing window), recent
+  win/loss ratio, momentum (territory delta over N ticks), weakest
+  currently-held region by defense power. All computable today from
+  `/moves/` history that's already public - nothing new gets revealed,
+  it's pre-digested.
+- **Stays inside both frozen rules**: the golden rule (report is
+  precomputed data, not an LLM judgment, and never touches
+  adjudication) and "una invocación LLM por tick emite todas las
+  órdenes" (the report feeds the force's *existing* single per-tick
+  call - no second agent, no separate strategist LLM).
+- **Timing**: hiring this tick can't inform this tick's own orders
+  (same-batch simultaneous submission) - the report can only land for
+  the *next* tick. That naturally makes this a standing/recurring cost
+  rather than a one-shot purchase, which fits "priced high so it's used
+  wisely" better than a single toggle.
+
+**Open questions before this is spec-worthy:**
+1. The exact per-tick cost (none invented here).
+2. Persists until cancelled, or expires after N ticks and needs
+   renewing?
+3. The final report-contents catalog - which heuristics, exact
+   formulas, not just the candidate list above.
+4. The new `move.schema.json` catalog entry, plus where the report
+   itself is carried in `world/forces/<id>.yml` between ticks.
+
 ## Format going forward
 
 Append dated entries below as more sandbox sessions turn up ideas. Keep

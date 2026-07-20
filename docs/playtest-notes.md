@@ -96,6 +96,90 @@ Applying this going forward in this sandbox: tick summaries should read
 like saga rather than a battle report, while every number in them still
 has to trace back to the real chronicle/state, no invented facts.
 
+## Session — 2026-07-20
+
+Prompted by the first full sandbox playthrough (16 ticks, three
+subagent forces + human adventurer): essence piled up with no ceiling
+(one force ended at 22 units, 8 essence bricked with nothing left to
+spend it on), the adventurer had nothing to do but move for the entire
+run, and tick narration stayed flat even after note #3 above asked for
+mythic framing of *results* - unit *counts* themselves still read as
+bare integers.
+
+### 4. Essence has no sink that scales with hoarding
+
+Confirmed against the code, not assumption: `schema/world.schema.json`
+caps nothing about a region's `units` field beyond `minimum: 0` - no
+maximum, anywhere, for garrison size or total army. Fortification caps
+at level 3 (`fortify_cap`), but `recruit` has no ceiling except whatever
+essence can buy. In the sandbox run this meant essence functioned as a
+one-way ratchet: yield in, garrison out, no cost that grows with what a
+force already holds.
+
+Idea: an **upkeep cost** - units cost essence per tick to maintain, so a
+force with a large standing army now has a running expense, not just a
+sunk one. Preferred over the alternatives considered:
+- Essence stockpile decay: punishes saving for a specific push, feels
+  arbitrary.
+- Scaling `recruit_cost` with garrison size: treats the symptom (buying
+  more) rather than the cause (holding more).
+
+Open questions before this is spec-worthy:
+- An upkeep cost changes the strategic value of every existing unit
+  retroactively - it's a real rule change to F1's economic context, not
+  a tuning knob, and needs its own fixture like any frozen mechanic
+  (CLAUDE.md: one phase, one PR).
+- The actual cost-per-unit number is not something to invent silently -
+  needs a deliberate `era.yml` value, calibrated the same way F3's
+  other constants were.
+
+### 5. Trade (adventurer <-> force): payoff is defined, the flow isn't
+
+`docs/intent.md` names trade as adventurer-only (forces never trade with
+each other - "Reputación fuerza↔fuerza: rechazada en v1") and gives the
+payoff precisely: +2 reputation/tick, capped at `trade_cap_per_tick: 3`.
+What it does **not** say: what is actually exchanged. Essence for
+reputation with no cost to the adventurer? Essence changing hands in
+both directions? Something else entirely? `engine/phase8_quests.py` has
+no trade logic at all right now (confirmed by reading it, not assumed) -
+the parameter in `era.yml` is currently inert.
+
+This is a real spec gap, not a design idea - flagging it rather than
+proposing an answer, per the stop rule. Needs a decision on the actual
+resource flow before any code can implement it.
+
+### 6. Adventurer progression should be felt during play, not just at coronation
+
+Sharpens idea #1 above. The frozen design already has reputation
+thresholds (`era.yml`: trade≥10, refuge≥25, errands_v2≥40 unlock
+things) and the "Legado" mechanic grants a diegetic title at
+coronation if reputation clears a bar - but that's an epilogue, visible
+only once an era ends. The ask: give the adventurer a sense of rank or
+standing that's legible *during* a run, not just narrated after the
+fact in the graveyard.
+
+Open question: is this a presentation change (narrate existing
+reputation numbers as guild ranks - no new mechanic, just framing,
+similar to idea #4 below) or a genuinely new progression track with its
+own thresholds/rewards? The former is low-risk; the latter is new
+scope needing the same treatment as #1.
+
+### 7. Cosmetic unit tiers - narrative skin over unchanged math
+
+Idea, well-received in discussion: describe unit stacks narratively
+(e.g. "5 units" reads as "an advance formation") without changing any
+underlying number. Explicitly presentation-only - the engine still
+moves raw integers, `/world/` schema is untouched, nothing here can
+violate the golden rule (no generated text ever enters adjudication)
+because the skin never feeds back into state. This is the natural
+extension of idea #3 (mythic narration) and idea #2 (visuals) applied
+specifically to how a garrison count gets described rather than how a
+tick's results get summarized.
+
+Lowest-risk idea in this session precisely because it stays entirely on
+the narration side of the golden-rule boundary - could be prototyped in
+chat narration (as already started) before it's ever worth scripting.
+
 ## Format going forward
 
 Append dated entries below as more sandbox sessions turn up ideas. Keep

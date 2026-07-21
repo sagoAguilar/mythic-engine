@@ -148,6 +148,22 @@ This is a real spec gap, not a design idea - flagging it rather than
 proposing an answer, per the stop rule. Needs a decision on the actual
 resource flow before any code can implement it.
 
+**Candidate resolution, surfaced while designing the Guild (idea #8):**
+the flow question is hard to answer *because* there's only one resource
+in this game - "recurso único: esencia" (E2, frozen). Trade can't be
+barter (nothing to barter with) so it's more coherently read as
+**tribute, not exchange**: the adventurer gives essence to a force,
+one-directional, up to `trade_cap_per_tick: 3`/tick, and gets +2
+reputation/tick back - no essence flows the other way. That also
+explains why `trade_cap_per_tick` lives in the adventurer's essence
+config block instead of the reputation block. Read this way, trade and
+`refuge` become a clean pair: refuge is the free/passive route to
+reputation (+1/tick, just be present, no cost) and trade is the
+paid/active route (+2/tick, faster, costs essence). Still open: is the
++2/tick flat regardless of how much of the 3-essence cap you actually
+spend, or does it scale with the amount given? Leading candidate, not
+yet decided.
+
 ### 6. Adventurer progression should be felt during play, not just at coronation
 
 Sharpens idea #1 above. The frozen design already has reputation
@@ -207,37 +223,84 @@ state.
   generated per `(seed, tick, force_id)`, same seeding discipline as
   everything else - gives the adventurer a real reason to visit all
   three corners of the map, not just the one they spawned near.
-- **Quest type candidates** (not finalized): travel A→B with path
-  constraints (e.g. neutral-only vs. must-cross-hostile-territory);
-  bodyguard / hold-a-region-for-N-ticks (can likely reuse `blockade`'s
-  existing consecutive-occupation tracking rather than new state);
-  scout-the-three-rings.
-- **Reward hook**: completing a quest at force X's capital nudges
-  reputation *with* force X - reuses the existing per-force
-  `reputation.deltas` mechanism, no new score invented.
+- **Quest types (decided): two, not three.** `travel` (A→B, with path
+  constraints - e.g. neutral-only vs. must-cross-hostile-territory) and
+  `hold` (occupy a region for N consecutive ticks, reusing `blockade`'s
+  existing consecutive-occupation tracking rather than new state). The
+  earlier "scout the three rings" idea folds into `travel` - it's just
+  travel quests with different targets, not a third mechanic.
+- **Four tiers (decided): Bronze (entry-level) → Silver → Gold →
+  Platinum.** Deliberately non-linear/widening at every axis below, so
+  Platinum reads as heroic rather than "Gold with a bigger number."
 - **Rank: per-force (decided)** - three separate standings, not one
-  global ladder. Chosen because reputation is already tracked per-force
-  in the frozen design, so per-force rank reads off something that
-  already exists rather than requiring a new aggregate.
+  global ladder, since reputation is already tracked per-force and rank
+  reads off tier completions at that specific capital: **rank = the
+  highest tier completed there.** No separate rank counter needed.
+- **Tier access gates on existing per-force reputation (decided)** -
+  reuses `era.yml`'s thresholds rather than inventing a parallel trust
+  score: Silver needs `trade: 10`, Gold needs `refuge: 25` (both
+  already-frozen numbers, now doing double duty). Platinum gets a new
+  threshold on the same widening curve - **reputation ≥ 70** with that
+  force (curve considered: 0/10/25/45 vs /55 vs /70; 70 was chosen as
+  the steep option, gaps of 10/15/45).
+- **Reputation reward per tier (decided): 0 / 1 / 5 / 15** (Bronze/
+  Silver/Gold/Platinum). Bronze pays no reputation at all - the doing
+  of it is the point, not the reward, consistent with idea #1's
+  original framing. Gaps from Silver up (1, 4, 10) widen sharply,
+  same "heroic, not linear" shape as the access thresholds.
+- **Essence reward per tier (decided): 1 / 3 / 8 / 25.** Confirmed
+  guild quests need *two* separate rewards, not one - the existing
+  quest schema's `reward` field is essence (exactly how `raid`/
+  `blockade`/`attrition`/`dethrone` already pay out, with no
+  reputation attached), so guild quests get essence via that same
+  field *plus* the new reputation mechanic above. Platinum's 25 sits
+  above every existing rubber-band reward (`dethrone`'s 15 is the
+  current ceiling) - deliberate, since it's meant to be the hardest
+  thing to pull off in the game.
+- **Stakes: reuse the existing two sizes (decided)** - Bronze/Silver
+  charge the `minor` stake (1), Gold/Platinum the `major` stake (2).
+  No new stake tiers invented.
+- **No penalty on failure, expiry, or abandonment (decided)** - a
+  `hold` quest broken by a hunt, or any guild quest left unclaimed past
+  its deadline, just fizzles like an unclaimed rubber-band quest
+  already does. Only the stake is at risk, never reputation - punishing
+  an attempted heroic rescue on top of the resources already spent
+  would discourage ever reaching for Platinum at all.
+- **Platinum's "heroic condition" (decided): a force reduced to a
+  single region.** This is the one guild quest type tied to a genuine
+  world-state trigger rather than pure difficulty scaling - the guild
+  reacting to a force in real crisis, generated the same way the
+  rubber-band engine already reacts to a force approaching dominance
+  (opposite condition, same mechanism: a deterministic state trigger,
+  not a force requesting help - staying clear of "encargos" even here).
 - **Rank reward: capabilities (decided)** - `docs/intent.md`'s
   "Crecimiento" row already defines capabilities as discrete unlocks,
   each a new schema action, currently completely unused (every
   adventurer spawns with `capabilities: []`, nothing ever fills it).
-  Candidate unlocks, none chosen yet: a fast-travel order (2 regions in
-  one move instead of 1); a "sanctuary" capability granting temporary
+  **Unlock trigger (decided): reaching a tier with *any single* force
+  for the first time**, not per-force and not requiring all three -
+  `capabilities` is a flat list on the adventurer, not keyed by force,
+  so this reading needs no new schema shape. Candidate unlocks, still
+  not mapped to specific tiers: a fast-travel order (2 regions in one
+  move instead of 1); a "sanctuary" capability granting temporary
   hunt-immunity; a second concurrent quest slot.
+- **Numbers are all first-pass, not final** - the plan is to run them
+  in the sandbox and tune whatever feels off before any of this goes
+  near `docs/intent.md`.
 
 **Open questions before this is spec-worthy:**
-1. Exact quest catalog - concrete mechanics per type, plus real
-   reward/stake/deadline numbers (none invented here, per the stop
-   rule).
-2. How rank is actually computed at a given capital - a raw reputation
-   threshold, a separate completions counter, or both together.
-3. Rank tier names and count, and which tier unlocks which capability.
-4. The new `docs/intent.md` "Fuentes" table row this needs, and the
+1. Which capability unlocks at which tier (Bronze/Silver/Gold/
+   Platinum) - three candidates listed above, four tiers, mapping not
+   decided.
+2. `travel`'s exact deadline windows and `hold`'s exact N-per-tier
+   (only the reward/stake/reputation numbers are set so far, not the
+   objective parameters themselves).
+3. The new `docs/intent.md` "Fuentes" table row this needs, and the
    adventurer schema fields to carry per-force rank/progress
    (`world.schema.json`'s `adventurer` def would need new fields beyond
-   today's flat `reputation` map).
+   today's flat `reputation` map - rank itself is derived, but *which*
+   quests have been completed where still needs to be stored
+   somewhere).
 
 ### 9. The Strategist — force-hireable deterministic intel subscription
 

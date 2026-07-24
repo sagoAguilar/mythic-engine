@@ -243,20 +243,48 @@ state.
   threshold on the same widening curve - **reputation ≥ 70** with that
   force (curve considered: 0/10/25/45 vs /55 vs /70; 70 was chosen as
   the steep option, gaps of 10/15/45).
-- **Reputation reward per tier (decided): 0 / 1 / 5 / 15** (Bronze/
-  Silver/Gold/Platinum). Bronze pays no reputation at all - the doing
-  of it is the point, not the reward, consistent with idea #1's
-  original framing. Gaps from Silver up (1, 4, 10) widen sharply,
-  same "heroic, not linear" shape as the access thresholds.
-- **Essence reward per tier (decided): 1 / 3 / 8 / 25.** Confirmed
-  guild quests need *two* separate rewards, not one - the existing
-  quest schema's `reward` field is essence (exactly how `raid`/
-  `blockade`/`attrition`/`dethrone` already pay out, with no
-  reputation attached), so guild quests get essence via that same
-  field *plus* the new reputation mechanic above. Platinum's 25 sits
-  above every existing rubber-band reward (`dethrone`'s 15 is the
-  current ceiling) - deliberate, since it's meant to be the hardest
-  thing to pull off in the game.
+- **Reputation reward per tier (revised after sandbox testing): Bronze
+  is probabilistic, Silver/Gold/Platinum stay flat at 1 / 5 / 15.**
+  Originally decided as a flat 0 for Bronze ("the doing of it is the
+  point, not the reward") - but that turned out to create a real
+  circularity, caught by testing rather than reasoning about it on
+  paper: with `refuge_per_tick`/`trade_per_tick` both confirmed inert
+  in the engine (idea #5), flat-0 Bronze meant **no path from 0
+  reputation to Silver's 10-threshold existed at all.** Fixed with a
+  seeded coin-flip, not true randomness (per the determinism rule -
+  same discipline as F2's collision-order hash): each Bronze completion
+  computes `hash(seed, tick, adventurer_id, quest_id)` parity - on a
+  hit, +1 reputation; on a miss, +0. Gaps from Silver up (1, 4, 10)
+  still widen sharply, same "heroic, not linear" shape as the access
+  thresholds.
+- **Essence reward per tier (Bronze revised, Silver/Gold/Platinum
+  unchanged): 1(or 2) / 3 / 8 / 25.** Silver/Gold/Platinum unchanged.
+  Bronze's essence reward is now **conditional on the same coin-flip**:
+  1 essence if the flip hit (reputation gained that completion), 2 if
+  it missed - also caught by sandbox testing: a flat 1-essence reward
+  against a 1-essence stake made Bronze exactly break-even whenever the
+  coin-flip missed, which read as busywork rather than "something to
+  do." Doubling the consolation essence keeps every completion net-
+  positive regardless of the flip (expected value +0.5 essence/
+  completion averaged over both outcomes). Silver/Gold/Platinum's
+  reward field is fine as originally set - the existing quest schema's
+  `reward` field is essence (exactly how `raid`/`blockade`/`attrition`/
+  `dethrone` already pay out, no reputation attached), guild quests get
+  essence via that same field *plus* the reputation mechanic above.
+  Platinum's 25 sits above every existing rubber-band reward
+  (`dethrone`'s 15 is the current ceiling) - deliberate, meant to be
+  the hardest thing to pull off in the game.
+
+**Sandbox trial (2026-07-24, 2 Bronze `travel` completions tested):**
+both coin-flips missed (reputation stayed 0/0/0 - a real possible
+outcome at 50/50 over only 2 trials, not a bug), but the doubling fix
+meant essence still went 5 → 6 net across both, confirming the fix
+does what it's supposed to: even on a bad-luck streak the adventurer
+gains something, never just breaks even. Two misses running is also a
+fair warning that reputation can plausibly take a genuine while to get
+moving under pure chance - a real property of this design, not
+necessarily a problem, but worth knowing before it's frozen. Not yet
+tested: an actual coin-flip hit, or anything at Silver tier or above.
 - **Stakes: reuse the existing two sizes (decided)** - Bronze/Silver
   charge the `minor` stake (1), Gold/Platinum the `major` stake (2).
   No new stake tiers invented.

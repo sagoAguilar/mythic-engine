@@ -285,6 +285,38 @@ fair warning that reputation can plausibly take a genuine while to get
 moving under pure chance - a real property of this design, not
 necessarily a problem, but worth knowing before it's frozen. Not yet
 tested: an actual coin-flip hit, or anything at Silver tier or above.
+
+**Sandbox trial (2026-07-24, continued): Silver/Gold/Platinum, all
+three, bootstrapped rather than earned.** Since Silver/Gold/Platinum
+were never random (only Bronze got the coin-flip fix), testing them is
+deterministic by construction - the only thing that needed a shortcut
+was *reaching* the thresholds, so reputation and (for Platinum) force-3's
+territory were set directly rather than played into, same transparent
+approach as the earlier position teleport. Confirmed working: the
+schema stayed fully valid through every bootstrap (checked via
+`load_state` after each step) since only already-existing fields were
+touched, nothing needed inventing to make it validate. Results: Silver
+(stake 1, essence 5→8, reputation 10→11), Gold (stake 2, essence
+8→14, reputation 25→30), Platinum (stake 2, essence 12→37, reputation
+70→85) - rank read cleanly off "highest tier completed" at each step,
+no separate counter needed anywhere.
+
+Two real findings, both edge cases the design didn't have an answer for
+yet:
+- **Capability-unlock ambiguity with multiple forces.** All three tiers
+  fired a "first-ever" unlock in this trial because force-3 was the
+  adventurer's only relationship so far - untested: reaching Gold with
+  force-3 *after* already holding Gold with force-1. Does that fire a
+  second unlock, or does "first time reaching a tier" mean the *very*
+  first time across all three forces, ever, full stop? Genuinely
+  undecided, not just unbuilt.
+- **Platinum's two gates might rarely coincide in real play.** Needing
+  both reputation ≥70 *with a specific force* and *that same force*
+  reduced to one region is a real double condition - in this trial both
+  were set by hand, so it proved the *math* works, not that the
+  *situation* is reachable at a rate that feels right. Worth watching
+  in real play whether Platinum ends up almost never triggering, versus
+  exactly as rare as intended.
 - **Stakes: reuse the existing two sizes (decided)** - Bronze/Silver
   charge the `minor` stake (1), Gold/Platinum the `major` stake (2).
   No new stake tiers invented.
@@ -319,7 +351,11 @@ tested: an actual coin-flip hit, or anything at Silver tier or above.
 **Open questions before this is spec-worthy:**
 1. Which capability unlocks at which tier (Bronze/Silver/Gold/
    Platinum) - three candidates listed above, four tiers, mapping not
-   decided.
+   decided. Sharpened by testing: does "first time reaching a tier"
+   mean per-tier-ever-across-all-forces, or could reaching an
+   already-unlocked tier with a *different* force fire something too
+   (nothing to fire currently, since it's a flat list - genuinely
+   undecided, not just unbuilt).
 2. `travel`'s exact deadline windows and `hold`'s exact N-per-tier
    (only the reward/stake/reputation numbers are set so far, not the
    objective parameters themselves).

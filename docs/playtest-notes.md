@@ -229,6 +229,57 @@ state.
   existing consecutive-occupation tracking rather than new state). The
   earlier "scout the three rings" idea folds into `travel` - it's just
   travel quests with different targets, not a third mechanic.
+- **`travel` deadlines / `hold` N, per tier (decided): 3/6/10/15 ticks
+  to complete a `travel`; 2/4/6/10 ticks to complete a `hold`**
+  (Bronze/Silver/Gold/Platinum), same widening-gap shape as every other
+  curve here. **Gold and Platinum `hold` additionally require the
+  region be actively contested during the hold**, not just occupied -
+  Bronze/Silver are pure endurance, Gold/Platinum require real danger
+  in the narrative sense (F4 still makes the adventurer mechanically
+  safe from ordinary combat regardless - the stakes are narrative
+  weight, not literal risk, unless a hunt is explicitly declared).
+- **What `hold` means to the forces, stated explicitly: nothing.**
+  Confirmed by design, not a gap - same "does not touch force state"
+  principle idea #1 started with. The region's ownership, combat, and
+  yield all proceed completely independent of the adventurer's
+  presence (the same F4 coexistence rule that lets them stand unharmed
+  in a warzone). The moment `hold` started actually helping whichever
+  force owns that ground, it would reopen the power-ceiling tension
+  "helping conquest" ran into below.
+- **"Helping conquest" -> reframed as "raid the ruins," explicitly not
+  a new map location.** The original idea (adventurer meaningfully
+  assists a force's conquest) was flagged as a real tension with the
+  frozen power-ceiling boundary - the adventurer's ceiling is
+  specifically verified by counterfactual replay to guarantee they
+  never decide who wins territory, so a quest type that gives them real
+  combat/conquest weight isn't a small addition. Reframed instead as
+  **dungeon-flavored quests layered onto the *existing* 9 neutral
+  regions** - no new map nodes, which would reopen the frozen M1
+  decision ("12 regiones... congelado") and the map generator's
+  rotational-isomorphism test. Flavor text varies by who currently owns
+  (or doesn't own) that region - free to implement, since ownership is
+  already tracked, no new schema needed for the flavor itself.
+- **Narrative-choice quests: a real mechanic, not just flavor, still to
+  be designed in full.** Instead of "stand still for N ticks," a
+  `hold`/dungeon-flavored quest could unfold as a story with real
+  junctures - a choice at some point that can lose the quest outright,
+  not just a duration timer. Stays inside the golden rule cleanly: the
+  *prose* at each juncture is generated/lore-register (already how idea
+  #3 wants results narrated), but the *pass/fail consequence* of a
+  choice must be a fixed rule decided in advance or a seeded flip (same
+  discipline as Bronze's reputation coin-flip) - never an LLM deciding
+  in the moment whether a choice worked. This is probably the strongest
+  lever yet for making guild quests feel like *playing* rather than
+  *waiting* - not yet designed further than the mechanism being
+  compatible.
+- **Scope note, explicit:** the depth here is intentional, not
+  something to trim - discussed directly and the answer was to keep it
+  and handle the size through *implementation phasing* instead (Bronze
+  + Silver first, prove it out, then the rest - one phase at a time,
+  same discipline as everything else this engine was built with), not
+  by cutting the design down now. Worth remembering when this eventually
+  moves toward `docs/intent.md` - it should land as several small PRs,
+  not one.
 - **Four tiers (decided): Bronze (entry-level) → Silver → Gold →
   Platinum.** Deliberately non-linear/widening at every axis below, so
   Platinum reads as heroic rather than "Gold with a bigger number."
@@ -385,15 +436,18 @@ yet:
   near `docs/intent.md`.
 
 **Open questions before this is spec-worthy:**
-1. `travel`'s exact deadline windows and `hold`'s exact N-per-tier
-   (only the reward/stake/reputation numbers are set so far, not the
-   objective parameters themselves).
-2. The new `docs/intent.md` "Fuentes" table row this needs, and the
+1. The new `docs/intent.md` "Fuentes" table row this needs, and the
    real schema surface this now implies for the adventurer entity -
    which quests completed where (rank is derived from this, still
    needs storing), which (tier, force) capabilities are learned, and
    which one is currently equipped per slot. Meaningfully more than the
    flat `capabilities: []` array can hold today.
+2. Narrative-choice quests need real design, not just a compatible
+   mechanism - how many junctures, how choices map to pass/fail, how
+   much is fixed-in-advance vs. seeded-per-attempt.
+3. `max_claimants` for guild quests - exclusive (`1`, seeded-collision
+   winner takes it, confirmed as the intended model) vs. `open` - which
+   one, and does it vary by tier.
 
 ### 9. The Strategist — force-hireable deterministic intel subscription
 

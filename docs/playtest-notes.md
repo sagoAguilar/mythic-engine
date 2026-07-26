@@ -333,38 +333,67 @@ yet:
   rubber-band engine already reacts to a force approaching dominance
   (opposite condition, same mechanism: a deterministic state trigger,
   not a force requesting help - staying clear of "encargos" even here).
-- **Rank reward: capabilities (decided)** - `docs/intent.md`'s
-  "Crecimiento" row already defines capabilities as discrete unlocks,
-  each a new schema action, currently completely unused (every
-  adventurer spawns with `capabilities: []`, nothing ever fills it).
-  **Unlock trigger (decided): reaching a tier with *any single* force
-  for the first time**, not per-force and not requiring all three -
-  `capabilities` is a flat list on the adventurer, not keyed by force,
-  so this reading needs no new schema shape. Candidate unlocks, still
-  not mapped to specific tiers: a fast-travel order (2 regions in one
-  move instead of 1); a "sanctuary" capability granting temporary
-  hunt-immunity; a second concurrent quest slot.
+- **Rank reward: capabilities - revised into a richer system, supersedes
+  the earlier "flat schema" reading.** `docs/intent.md`'s "Crecimiento"
+  row defines capabilities as discrete unlocks, each a new schema
+  action, currently completely unused (`capabilities: []` always,
+  nothing ever fills it) - that part stands. What changed: capabilities
+  are no longer one-per-tier, they're **one per (tier, force) pair** -
+  each force's chapter grants its own flavored variant of the tier's
+  capability (Force One's Gold differs mechanically-in-flavor from
+  Force Three's Gold), so reaching a tier with multiple forces unlocks
+  multiple distinct capabilities at that tier, not duplicates of one.
+  This explicitly reopens the earlier "flat list, no new schema shape"
+  simplification - `capabilities` now needs to track *learned* vs
+  *equipped* separately, which a flat array can't represent on its own.
+  **Full mechanic:**
+  - **Eligibility vs. possession**: reaching a tier with a force makes
+    you *eligible* to learn that force's variant - it does not grant it
+    automatically. Learning costs essence, paid per variant, per force
+    - learning force-1's Gold and force-3's Gold are two separate
+      purchases, full price each, no discount for already owning "a"
+      Gold-tier capability from elsewhere.
+  - **Learning cost (decided, separate curve from the reward table):
+    5 / 15 / 40** for Silver/Gold/Platinum - deliberately steeper than
+    the 3/8/25 reward numbers, since a capability is a standing
+    upgrade, not a one-time payout. Bronze grants no capability at all
+    (nothing to learn there, consistent with Bronze's "the doing is the
+    point" framing throughout).
+  - **Equip slots, one per tier (Silver/Gold/Platinum)**: only one
+    capability active per slot at a time. Normally a slot only accepts
+    a capability of its own tier, but you can freely swap between any
+    *already-learned* variants of that tier (any force) - nothing locks
+    you out of capabilities you've paid for.
+  - **Platinum's slot is the exception**: it accepts *any* learned
+    capability, any tier, any force - the capstone reward is
+    flexibility, not raw power.
+  - **Switching costs too, every time, not just the first swap**: half
+    the learning price of whichever capability you're switching *into*
+    - roughly 3 / 8 / 20 to re-equip within Silver/Gold/Platinum
+    (applies the same way switching into Platinum's wildcard slot -
+    half of whatever tier you're bringing in, not a separate Platinum-
+    specific number). Specialize in one variant and never pay a switch
+    fee, or diversify across forces and pay both to learn and to keep
+    reconfiguring - a real, ongoing essence sink either way.
+  - **Tier → capability mapping (decided)**: Silver = a second
+    concurrent quest slot; Gold = fast-travel (2 regions per move
+    instead of 1); Platinum = "sanctuary," temporary hunt-immunity.
+    Escalating utility → mobility → survival, matching each tier's
+    narrative weight.
 - **Numbers are all first-pass, not final** - the plan is to run them
   in the sandbox and tune whatever feels off before any of this goes
   near `docs/intent.md`.
 
 **Open questions before this is spec-worthy:**
-1. Which capability unlocks at which tier (Bronze/Silver/Gold/
-   Platinum) - three candidates listed above, four tiers, mapping not
-   decided. Sharpened by testing: does "first time reaching a tier"
-   mean per-tier-ever-across-all-forces, or could reaching an
-   already-unlocked tier with a *different* force fire something too
-   (nothing to fire currently, since it's a flat list - genuinely
-   undecided, not just unbuilt).
-2. `travel`'s exact deadline windows and `hold`'s exact N-per-tier
+1. `travel`'s exact deadline windows and `hold`'s exact N-per-tier
    (only the reward/stake/reputation numbers are set so far, not the
    objective parameters themselves).
-3. The new `docs/intent.md` "Fuentes" table row this needs, and the
-   adventurer schema fields to carry per-force rank/progress
-   (`world.schema.json`'s `adventurer` def would need new fields beyond
-   today's flat `reputation` map - rank itself is derived, but *which*
-   quests have been completed where still needs to be stored
-   somewhere).
+2. The new `docs/intent.md` "Fuentes" table row this needs, and the
+   real schema surface this now implies for the adventurer entity -
+   which quests completed where (rank is derived from this, still
+   needs storing), which (tier, force) capabilities are learned, and
+   which one is currently equipped per slot. Meaningfully more than the
+   flat `capabilities: []` array can hold today.
 
 ### 9. The Strategist — force-hireable deterministic intel subscription
 

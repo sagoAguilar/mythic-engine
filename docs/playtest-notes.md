@@ -565,6 +565,79 @@ derived entirely from data that's already public.
 4. The new `move.schema.json` catalog entry, plus where the report
    itself is carried in `world/forces/<id>.yml` between ticks.
 
+### 10. Fortify escalation + upkeep, and a new `siege` mechanic
+
+Prompted by watching fortification become a solved wall in the
+sandbox trial - `ring-1` and `ring-3` both hit the level-3 cap and,
+once garrisoned, needed genuinely overwhelming numeric advantages to
+break in a single `attack_region` (only that one big three-way
+collision actually cracked one). Two changes, converged:
+
+**Fortify: escalating cost and bonus, plus upkeep-or-erosion
+(illustrative numbers, not final):**
+
+| Level | Cost (was flat 5) | Cumulative bonus (was flat +2/level) | Upkeep/tick |
+|---|---|---|---|
+| 1 | 5 | +2 | 1 |
+| 2 | 10 | +5 | 3 |
+| 3 | 20 | +10 | 6 |
+
+Both cost and bonus escalate now, not just cost - level 3 is a
+genuinely bigger commitment for a genuinely bigger payoff, not "more of
+level 1." New: **upkeep, paid every tick or the fortification erodes**
+(one level lost per tick of missed payment, proposed) - distinct from
+idea #4's general unit-upkeep proposal, but the same underlying fix:
+essence sinks that scale with what's already held, not just one-time
+purchases. Worth remembering while designing this: confirmed (idea #4)
+that garrison size has no cap anywhere in the schema, fortified or not
+- fortification level and raw unit count are two totally uncapped,
+unrelated axes today.
+
+**`siege`: a new multi-tick action that eats fortification faster, at
+a premium.**
+- Erodes fortification over several ticks (proposed: -1 level every
+  2-3 ticks) rather than requiring one overwhelming `attack_region` -
+  meant specifically to give heavily-fortified positions a counter
+  that isn't just "more units than they have."
+- Costs extra, every tick the siege continues (not a one-time fee) -
+  additional essence or units committed specifically to the siege
+  ("siege machines," narrative flavor only, same as trade's narrative-
+  only goods - no new tracked resource).
+- **Explicit design stance on external interference, recommended and
+  agreed: no special isolation.** A siege doesn't lock the target region
+  in a bubble - it's a standing *commitment by the attacker* (their
+  units stay engaged, tied up, unavailable elsewhere), not a shield
+  around the defender. The defender can still reinforce or fortify
+  normally; other forces and the adventurer aren't frozen out either.
+  This was chosen deliberately over a special-cased isolated state,
+  because everything else in this engine resolves through the same
+  simultaneous-commitment machinery every tick (Diplomacy model) - a
+  "nothing else can touch this" rule would be a real consistency break
+  for no clear benefit. The actual cost of sieging is the strategic
+  exposure it creates elsewhere on the board while your army's tied
+  down, not an artificial lockout. Bonus: this means a Guild `hold`
+  quest at Gold/Platinum (already requires contested ground) can
+  naturally coincide with a live siege with zero new rule needed - the
+  intersection falls out of mechanics that already exist.
+
+**Open questions before this is spec-worthy:**
+1. All numbers above are illustrative/first-pass - cost/bonus/upkeep
+   curve for fortify, erosion rate and premium cost for siege.
+2. Exact erosion consequence for missed fortify upkeep - one level
+   per missed tick was proposed, not confirmed as final.
+3. `siege` needs a new `move.schema.json` entry (force-only) and state
+   to track an in-progress siege across ticks (which region, which
+   attacker, ticks elapsed, erosion accumulated).
+4. Relationship to idea #4's general unit-upkeep proposal - fortify
+   upkeep and unit upkeep are being designed as two separate costs;
+   worth checking they compose sensibly rather than fighting each
+   other once both exist.
+
+## Pending topics, not yet discussed
+
+- Force actions (general reconsideration, scope not yet stated)
+- Decree (new mechanic, scope not yet stated)
+
 ## Format going forward
 
 Append dated entries below as more sandbox sessions turn up ideas. Keep

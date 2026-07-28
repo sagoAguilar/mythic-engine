@@ -22,6 +22,7 @@
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "count": { "type": "integer", "minimum": 1 },
     "order": {
+      "description": "One order in the batch: exactly one of the seven catalog actions below.",
       "oneOf": [
         { "$ref": "#/$defs/move_units" },
         { "$ref": "#/$defs/attack_region" },
@@ -33,6 +34,7 @@
       ]
     },
     "move_units": {
+      "description": "Peaceful transfer of units between adjacent regions - both forces and the adventurer may issue this. `to` must be adjacent to `from` and either already owned by the acting actor or neutral (owner: null); moving into hostile territory requires attack_region instead. For the adventurer, count must be exactly 1 (their own single unit), and any owner is a legal destination - they coexist as a non-combatant rather than being blocked or fighting (F4).",
       "type": "object",
       "properties": {
         "action": { "const": "move_units" },
@@ -44,18 +46,23 @@
       "additionalProperties": false
     },
     "attack_region": {
+      "description": "Force-only: commits count units from `from` against a hostile `to` (owned by a rival, not neutral and not the actor's own). Resolved in phase 5 via F1 - attacker power is `count`; defender power is their units plus fortification bonus; the loser is annihilated. The `target: adventurer` variant is different in kind, not degree: it declares a hunt that kills a non-combatant adventurer present in `to` outright (no F1 duel, just the order slot's cost), and spawns a vengeance quest against the killer (era.yml's `adventurer_death_vengeance` trigger).",
       "type": "object",
       "properties": {
         "action": { "const": "attack_region" },
         "from": { "$ref": "#/$defs/region_id" },
         "to": { "$ref": "#/$defs/region_id" },
         "count": { "$ref": "#/$defs/count" },
-        "target": { "const": "adventurer" }
+        "target": {
+          "const": "adventurer",
+          "description": "Declares this attack a hunt against a non-combatant adventurer present in `to`, instead of a territorial assault on its owner."
+        }
       },
       "required": ["action", "from", "to", "count"],
       "additionalProperties": false
     },
     "recruit": {
+      "description": "Force-only: adds `count` units to a region the force already owns, at `economy.recruit_cost` essence per unit (era.yml), spent from essence held at the start of the tick.",
       "type": "object",
       "properties": {
         "action": { "const": "recruit" },
@@ -66,6 +73,7 @@
       "additionalProperties": false
     },
     "fortify": {
+      "description": "Force-only: adds one persistent fortification level (up to `economy.fortify_cap`) to a region the force owns, at a flat `economy.fortify_cost` essence, raising that region's defense power by `economy.fortify_bonus` per level in all future combat there.",
       "type": "object",
       "properties": {
         "action": { "const": "fortify" },
@@ -75,6 +83,7 @@
       "additionalProperties": false
     },
     "accept_quest": {
+      "description": "Claims an active quest by id, subject to its eligibility (forces/adventurer/any), any claim-slot limit, and the actor's ability to pay its stake - charged immediately on acceptance and never refunded, win or lose. Reward and reputation effects apply only later, if and when the quest resolves as a success.",
       "type": "object",
       "properties": {
         "action": { "const": "accept_quest" },
@@ -84,6 +93,7 @@
       "additionalProperties": false
     },
     "spawn_adventurer": {
+      "description": "Human-only, and only once per username: creates the adventurer entity with baseline essence in a spawnable region (a neutral region, or one belonging to whichever force currently holds the least territory). Rejected if the username already has a living adventurer entity.",
       "type": "object",
       "properties": {
         "action": { "const": "spawn_adventurer" },
@@ -94,6 +104,7 @@
       "additionalProperties": false
     },
     "claim_loot": {
+      "description": "Adventurer-only: collects the full essence value of any active loot deposited in the region the adventurer currently occupies, extinguishing the pot. If multiple eligible adventurers stand on the same pot, the seeded collision formula (not batch order) decides who claims it - later claimants are rejected once it's gone.",
       "type": "object",
       "properties": {
         "action": { "const": "claim_loot" },

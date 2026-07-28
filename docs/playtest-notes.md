@@ -687,13 +687,22 @@ where every subagent prompt had hand-written prose rules (F1 combat
 math, action preconditions, etc.) standing in for something the real
 client doesn't do yet.
 
-**Proposed fix, low-risk**: add `description` fields to each action
-definition in `move.schema.json` - shows up natively in the tool-use
-schema the model already sees, and documents the schema for humans
-reading the file too. Not a game-rule change, purely documenting
-semantics that are already frozen - lower-stakes than everything else
-in this file, closer to a bug fix than a design decision. Not yet
-actioned - still needs confirmation to actually touch the schema file.
+**Fixed (2026-07-24)**: added a `description` to `order` and to all
+seven action definitions in `schema/move.schema.json`, grounded in
+`docs/intent.md`'s catalog and verified line-by-line against the actual
+phase code rather than assumed - this caught two inaccuracies before
+they shipped: `attack_region`'s `target: adventurer` description
+initially claimed a direct reputation penalty on the killer, but
+`config.py`/`era.yml` have no such parameter at all - what's actually
+implemented (confirmed in `phase9_spawn.py`) is a vengeance quest spawn
+against the killer, a different and more indirect mechanism, and the
+description was corrected to match. `claim_loot`'s description
+similarly claimed a partial-value discrepancy that doesn't exist - the
+code confirms the claimant always gets the pot's full value. Verified
+end-to-end: `agent_client/llm.py`'s `_orders_tool_schema` passes these
+descriptions straight through to what the model actually sees in the
+tool-use call, no code changes needed there; full suite (154 tests)
+still passes, schema still validates as proper JSON Schema.
 
 ## Pending topics, not yet discussed
 

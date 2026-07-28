@@ -133,6 +133,22 @@ Open questions before this is spec-worthy:
   needs a deliberate `era.yml` value, calibrated the same way F3's
   other constants were.
 
+**Implemented (2026-07-24), the first idea from this file to go all the
+way from note to frozen spec to tested code.** Landed as F5:
+`floor(total_units / upkeep_divisor)` essence per force per tick,
+netted against yield in the same phase (7), computed from actual
+post-combat garrison rather than the stale cached total. `era.yml`:
+`upkeep_divisor: 5`, frozen into `docs/intent.md` as F5 and flagged
+"calibración empírica" like F3 - a reasoned initial value, not yet
+data from a played era. 4 new tests, full suite at 160 passed, all 12
+fixture `era.yml` files updated to stay schema-valid.
+
+Verified live against the real sandbox's 18-tick-grown armies: force-2's
+28 units had yield cut from 8 to a net 3 (62%); force-3's 5 units barely
+noticed (net 1, upkeep only 1). Confirms the fix targets the snowball
+specifically, not early-game growth - exactly the problem this idea
+opened with.
+
 ### 5. Trade (adventurer <-> force): payoff is defined, the flow isn't
 
 `docs/intent.md` names trade as adventurer-only (forces never trade with

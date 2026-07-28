@@ -122,6 +122,8 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 - Muere solo por declaración explícita: `attack_region` con `target: adventurer` — cuesta una orden del batch
 - Matarlo paga reputación negativa con las demás fuerzas (parámetro en `era.yml`). Caza posible, explícita en traza, con precio diplomático
 
+**F5 — Upkeep de esencia:** cada fuerza paga `floor(unidades_totales / upkeep_divisor)` de esencia por tick, neteado contra el rendimiento en la misma fase 7 (propiedad post-combate, mismo momento que el yield). Una fuerza con menos unidades que `upkeep_divisor` no paga nada — el costo solo muerde una vez que el ejército ya creció, no en la apertura. `upkeep_divisor` en `era.yml`, calibración empírica declarada como knowledge gap, igual que F3: valor inicial `5`, razonado (ningún tope de guarnición existe en ninguna región, así que sin este costo la esencia y las unidades acumulan sin límite), no dato jugado.
+
 ## Decisiones congeladas — cierres finales (vacíos 1–4)
 
 **Política NPC (determinista, máx 1 orden/tick aunque el cap sea mayor — diferencia de volumen visible en traza):**
@@ -158,7 +160,8 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
                      # baseline de recursos, quema de loot, M de disipación,
                      # umbrales de reputación, tabla de triggers, presupuesto tokens,
                      # caps de órdenes por tick, cap de comercio aventurero/tick,
-                     # costos recruit/fortify, cap F de fortificación
+                     # costos recruit/fortify, cap F de fortificación,
+                     # upkeep_divisor (F5)
   tick.txt           # puntero atómico de tick
   regions/<id>.yml   # dueño, recursos base, unidades presentes, fortificación, botín activo
   forces/<id>.yml    # persona ref, esencia, unidades

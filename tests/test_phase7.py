@@ -60,7 +60,33 @@ def test_yield_reads_region_state_not_hardcoded_values(state):
     working = copy.deepcopy(state)
     working["regions"]["arm-1-a"]["yield"] = 7
     delta = resolve_yield(working, [], CONFIG, SEED)
-    assert delta["essence_changes"]["force-1"] == 2 + 7 + 2
+    # force-1 holds 6 units total -> floor(6/5)=1 upkeep nets against yield
+    assert delta["essence_changes"]["force-1"] == (2 + 7 + 2) - 1
+
+
+def test_upkeep_is_free_below_the_divisor(state):
+    # force-3 holds 2 units total; floor(2/5)=0, pure yield, no deduction
+    delta = resolve_yield(state, [], CONFIG, SEED)
+    assert delta["essence_changes"]["force-3"] == 5
+
+
+def test_upkeep_scales_with_total_garrison_not_cached_units(state):
+    # phase 7 must recompute from region state, not trust forces[x].units,
+    # since that cache isn't refreshed until resolve()'s final assembly -
+    # same discipline phase 8's attrition check already uses.
+    working = copy.deepcopy(state)
+    working["forces"]["force-1"]["units"] = 999  # stale/wrong cache
+    working["regions"]["capital-1"]["units"] += 10  # force-1: 6 -> 16 units
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    # yield unaffected by the extra garrison; upkeep now floor(16/5)=3
+    assert delta["essence_changes"]["force-1"] == 5 - 3
+
+
+def test_upkeep_never_touches_the_adventurer(state):
+    # the adventurer owns no regions, so units_owned never gets populated
+    # for them regardless of their personal unit count
+    delta = resolve_yield(state, [], CONFIG, SEED)
+    assert "adventurer-sago" not in delta["essence_changes"]
 
 
 def test_loot_expiring_this_tick_is_not_swept_yet(state):

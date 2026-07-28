@@ -40,6 +40,7 @@ era:
     fortify_cap: 3
     fortify_cost: 5
     recruit_cost: 2
+    upkeep_divisor: 5
     yield_capital: 2
     yield_neutral: 1
     yield_ring: 2

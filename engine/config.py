@@ -48,6 +48,7 @@ class Economy:
     fortify_cost: int
     fortify_bonus: int
     fortify_cap: int
+    upkeep_divisor: int
 
 
 @dataclass(frozen=True)

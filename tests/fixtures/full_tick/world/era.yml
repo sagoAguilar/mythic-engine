@@ -24,6 +24,7 @@ economy:
   fortify_cost: 5
   fortify_bonus: 2             # defense power per fortification level
   fortify_cap: 3
+  upkeep_divisor: 5
 
 combat:
   tie_favors: defender         # frozen: strict determinism, no seed in combat

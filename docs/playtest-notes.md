@@ -704,9 +704,37 @@ descriptions straight through to what the model actually sees in the
 tool-use call, no code changes needed there; full suite (154 tests)
 still passes, schema still validates as proper JSON Schema.
 
+### 13. Agent client fix: forces didn't know what was actually at their disposal
+
+Clarified scope of the "force actions" pending topic: distinct from
+idea #12 (which fixed forces not knowing what actions *mean*), this was
+about forces not having an easy answer to "what do I actually have to
+work with *this tick*" - the full state dump technically contains
+everything, but a force had to re-derive "which regions are mine" and
+"who borders them" from a flat, unfiltered region list every single
+tick.
+
+**Fixed (2026-07-24)**: added `disposal_summary()` to
+`agent_client/context.py` - computes, per force, essence available,
+every owned region (units/fortification/yield) with each neighbor's
+ownership inlined (no more re-deriving "is this adjacent region mine,
+neutral, or hostile" from the raw dump), and any active quest eligible
+to forces (`eligibility: forces` or `any`) - `accept_quest` is easy to
+miss buried in `quests.active` otherwise. Rendered as a new "## Your
+disposal this tick" section in `agent_client/prompt.py`, placed *before*
+the full raw world-state dump so it's the first thing the model reads,
+not something to dig for. The full dump stays too, for context beyond
+the force's own regions (rival territory, full quest list, etc.) - this
+is additive, not a replacement.
+
+Verified: 3 new tests in `tests/test_agent_client.py` (disposal only
+lists owned regions with correct neighbor ownership, `build_context`
+wires it in, the rendered prompt surfaces it ahead of the raw dump) -
+full suite now at 157 passed, all green.
+
 ## Pending topics, not yet discussed
 
-- Force actions (general reconsideration, scope not yet stated)
+(none currently queued)
 
 ## Format going forward
 

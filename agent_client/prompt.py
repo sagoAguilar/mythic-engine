@@ -11,6 +11,30 @@ prose: it is enforced by the tool schema passed alongside these prompts
 import yaml
 
 
+def _render_disposal(disposal: dict) -> str:
+    lines = [f"Essence available: {disposal['essence']}", "", "Regions you own:"]
+    for region_id, info in sorted(disposal["regions"].items()):
+        neighbors = ", ".join(
+            f"{n['id']} ({n['owner'] or 'neutral'})" for n in info["adjacent"]
+        )
+        lines.append(
+            f"  {region_id}: units={info['units']} fortification={info['fortification']} "
+            f"yield={info['yield']} adjacent=[{neighbors}]"
+        )
+    lines.append("")
+    if disposal["eligible_quests"]:
+        lines.append("Quests you're eligible to accept:")
+        for quest_id, quest in sorted(disposal["eligible_quests"].items()):
+            lines.append(
+                f"  {quest_id}: type={quest['type']} tier={quest['tier']} "
+                f"reward={quest['reward']} stake={quest['stake']} "
+                f"deadline={quest['deadline']}"
+            )
+    else:
+        lines.append("Quests you're eligible to accept: none active")
+    return "\n".join(lines)
+
+
 def build_system_prompt(persona: str) -> str:
     return (
         f"{persona.strip()}\n\n"
@@ -32,7 +56,10 @@ def build_user_prompt(ctx: dict, config, prior_errors: list[str]) -> str:
         f"Your force: {ctx['force_id']}",
         f"Order cap this tick: {config.orders.cap_force}",
         "",
-        "## Current world state",
+        "## Your disposal this tick",
+        _render_disposal(ctx["disposal"]),
+        "",
+        "## Current world state (full, for context beyond your own regions)",
         yaml.safe_dump(state, sort_keys=True),
         "",
         "## Move history (all actors, all resolved ticks)",

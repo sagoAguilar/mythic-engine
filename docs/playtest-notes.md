@@ -633,10 +633,71 @@ a premium.**
    worth checking they compose sensibly rather than fighting each
    other once both exist.
 
+### 11. Decree — a category of infrequent, high-impact force actions
+
+Prompted directly by fortify/siege's new upkeep costs (idea #10):
+once units and fortification both cost something ongoing to maintain,
+a force needs a real lever for *shedding* what it can't afford, not
+just accumulating. "Decree" is the name for a category of special
+force actions distinct from routine orders - dismissal and surge
+recruitment are the first two, more could join later (same pattern as
+"quest" being a category with multiple types).
+
+**Dismissal (decided): a force voluntarily reduces its own unit count,
+no refund.** Purely a release valve for upkeep pressure - matches
+every other spend in this economy (recruit, fortify, stakes) being
+one-directional, never returned.
+
+**Surge recruitment (converged shape):**
+- Doubles the units obtained from a recruit order. The normal per-unit
+  essence cost and the resulting units' upkeep are both **unaffected**
+  - decree only changes what you get from the action, not its ongoing
+  cost once recruited.
+- What actually costs extra: a **flat surcharge for invoking decree
+  itself**, on top of normal recruit cost, that **escalates with
+  consecutive use and resets to base the moment a tick passes without
+  using it** - "punish spam, forgive restraint" (confirmed framing).
+  Illustrative curve: surcharge 5 → 10 → 20 on back-to-back uses,
+  drops to 5 on the first skipped tick. Same widening-gap shape as
+  every other escalating curve in this session.
+
+**Open questions before this is spec-worthy:**
+1. All numbers illustrative (surcharge curve, reset condition - resets
+   after exactly one skipped tick as proposed, not confirmed as a
+   longer cooldown).
+2. Needs new `move.schema.json` entries (force-only) - likely a
+   `decree` action with a `kind: dismiss | surge_recruit` parameter,
+   or two separate actions; not decided.
+3. Interaction with idea #4/#10's upkeep proposals - dismissal only
+   makes sense once *something* costs upkeep (units and/or
+   fortification); sequencing matters if these get built separately.
+
+### 12. Agent client gap: forces aren't actually told what their actions do
+
+Real finding in already-built code, not a design idea - checked
+directly rather than assumed. `agent_client/prompt.py`'s system prompt
+never describes what `move_units`/`attack_region`/`recruit`/`fortify`/
+etc. actually *do* - it only explains the propose_orders/validation
+mechanics generically. `schema/move.schema.json` has exactly one
+`description` field in the entire file (on the top-level batch format),
+none on any individual action definition. So today, a force's LLM has
+to infer what each action means purely from field names and the tool's
+JSON-shape - very different from the sandbox trials in this session,
+where every subagent prompt had hand-written prose rules (F1 combat
+math, action preconditions, etc.) standing in for something the real
+client doesn't do yet.
+
+**Proposed fix, low-risk**: add `description` fields to each action
+definition in `move.schema.json` - shows up natively in the tool-use
+schema the model already sees, and documents the schema for humans
+reading the file too. Not a game-rule change, purely documenting
+semantics that are already frozen - lower-stakes than everything else
+in this file, closer to a bug fix than a design decision. Not yet
+actioned - still needs confirmation to actually touch the schema file.
+
 ## Pending topics, not yet discussed
 
 - Force actions (general reconsideration, scope not yet stated)
-- Decree (new mechanic, scope not yet stated)
 
 ## Format going forward
 

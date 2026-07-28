@@ -159,10 +159,75 @@ explains why `trade_cap_per_tick` lives in the adventurer's essence
 config block instead of the reputation block. Read this way, trade and
 `refuge` become a clean pair: refuge is the free/passive route to
 reputation (+1/tick, just be present, no cost) and trade is the
-paid/active route (+2/tick, faster, costs essence). Still open: is the
-+2/tick flat regardless of how much of the 3-essence cap you actually
-spend, or does it scale with the amount given? Leading candidate, not
-yet decided.
+paid/active route (+2/tick, faster, costs essence).
+
+**Fully converged shape, after deeper design:**
+- **Flat action, not scaled (decided).** Trade isn't "give any amount
+  up to 3" - it's a binary action costing exactly 3 essence, paying
+  exactly the frozen +2 reputation, every time you take it. Same
+  pattern as `fortify` (flat cost per action, not a variable amount) -
+  resolves the flat-vs-scaled question without inventing a new number
+  or hitting the fractional-reputation trap Bronze almost fell into.
+- **Essence genuinely transfers to the force - it doesn't vanish
+  (decided).** This matters beyond flavor: `docs/intent.md` explicitly
+  names trade as one of the adventurer's "legitimate channels of
+  influence" over the war's outcome, alongside quest completion and
+  posthumous loot. If the essence were destroyed like recruit/fortify/
+  stake costs are (confirmed as the norm - see idea #4's essence-flow
+  trace), trade wouldn't be an influence channel at all, just a private
+  reputation-farm. The volume cap (3/tick) is what keeps this
+  "erosion, not demolition." This makes trade the **second genuine
+  transfer** in the whole economy, after loot - everywhere else,
+  essence is either minted (yield, quest rewards) or destroyed
+  (recruit, fortify, stakes), never moved between ledgers.
+- **Positional requirement, tiered by depth into the force's territory
+  (decided, illustrative %s not final):** unlike `refuge` ("en
+  territorio de F" - anywhere they own), trade requires being present
+  somewhere in that force's territory too, but success chance scales
+  with how deep you are - ring (outermost, most contested) is riskiest,
+  arm is safer, the capital itself is guaranteed:
+
+  | Location | Success chance |
+  |---|---|
+  | Ring (their side of it) | ~50% |
+  | Arm | ~75% |
+  | Capital | 100% (guaranteed) |
+
+  Same discipline as Bronze's reputation coin-flip - a seeded formula
+  (`hash(seed, tick, adventurer_id, force_id)` against a depth-specific
+  threshold), never true randomness.
+- **Failure costs the tick, never the essence (decided).** A failed
+  trade attempt doesn't burn the 3 essence and doesn't transfer
+  anything - the adventurer just spent an order slot that tick for
+  nothing. Makes trading from the ring a real, essence-safe gamble
+  (skip the trip to the capital, risk wasting the attempt) rather than
+  a punishing one.
+- **What's exchanged: narrative-only, no new tracked resource
+  (decided).** `docs/intent.md`'s single-resource decision ("recurso
+  único: esencia") and CLAUDE.md's explicit non-goal ("múltiples
+  recursos") rule out real tradeable items - mechanically it's always
+  essence. What varies is the *telling*: essence delivered to Force One
+  might narrate as disciplined logistics, to Force Three as steel and
+  blades - same pattern as idea #7's cosmetic unit skins, zero new
+  schema.
+- **Refuge, contrasted explicitly**: free (no essence cost), passive
+  (+1/tick just for presence), and requires only *any* territory that
+  force owns - broader and gentler than trade's capital-specific,
+  costed, probabilistic version. Confirmed in the same state as trade -
+  `refuge_per_tick` exists in `era.yml`, appears nowhere in the engine.
+  The `refuge: 25` threshold this ties to is the same number already
+  reused as the Guild's Gold-tier gate (idea #8) - doing double duty.
+
+**Open questions before this is spec-worthy:**
+1. The exact success percentages per depth tier (50/75/100 above are
+   illustrative, not decided).
+2. This needs a genuinely new action in `move.schema.json`'s closed
+   catalog - unlike the Guild, which reuses `accept_quest` wholesale,
+   nothing like `trade` exists today. Adventurer-only, costs one of
+   their 2 order slots.
+3. Whether refuge, once actually built, should get the same kind of
+   depth/positional richness trade just got, or stay simple as
+   originally spec'd (any territory, flat +1/tick, no risk).
 
 ### 6. Adventurer progression should be felt during play, not just at coronation
 

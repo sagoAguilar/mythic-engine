@@ -8,9 +8,10 @@ whole (the catalog defines no partial fills).
 
 Catalog preconditions enforced here: the region is owned by the acting
 force; recruit costs ``count * recruit_cost``; fortify costs
-``fortify_cost``, adds one persistent fortification level, and respects
-the fortification cap — all values from era.yml. Both actions are
-force-only.
+``fortify_cost.at_level(current_level)`` — escalating, not flat, so
+reaching level 3 costs strictly more than level 1 — adds one persistent
+fortification level, and respects the fortification cap — all values
+from era.yml. Both actions are force-only.
 
 Pure function: no input mutation, no I/O, no randomness — the seed
 parameter is part of the uniform phase signature but this phase is
@@ -76,7 +77,7 @@ def resolve_recruit_fortify(state: dict, moves: list[dict], config, seed: int) -
                            f"fortify: {region_id} is already at fortification "
                            f"cap {config.economy.fortify_cap}")
                     continue
-                cost = config.economy.fortify_cost
+                cost = config.economy.fortify_cost.at_level(level)
                 if cost > remaining:
                     reject(actor, index,
                            f"fortify: cost {cost} exceeds the {remaining} "

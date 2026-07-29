@@ -65,7 +65,7 @@ def test_npc_force_step3_moves_half_toward_neutral(state):
     # and ring-1 (3 units, -> arm-1-b / ring-3). Most units: capital-1.
     state = copy.deepcopy(state)
     state["combats_last_tick"] = []
-    state["forces"]["force-1"]["essence"] = CONFIG.economy.fortify_cost - 1
+    state["forces"]["force-1"]["essence"] = CONFIG.economy.fortify_cost.at_level(0) - 1
     delta = resolve_validation(state, [], CONFIG, SEED)
     assert _batch_for(delta, "force-1")["orders"] == [
         {"action": "move_units", "from": "capital-1", "to": "arm-1-b", "count": 2}

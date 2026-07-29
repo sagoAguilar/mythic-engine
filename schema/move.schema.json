@@ -73,7 +73,7 @@
       "additionalProperties": false
     },
     "fortify": {
-      "description": "Force-only: adds one persistent fortification level (up to `economy.fortify_cap`) to a region the force owns, at a flat `economy.fortify_cost` essence, raising that region's defense power by `economy.fortify_bonus` per level in all future combat there.",
+      "description": "Force-only: adds one persistent fortification level (up to `economy.fortify_cap`) to a region the force owns, at that level's `economy.fortify_cost` essence (escalating - level 3 costs strictly more than level 1, not a flat per-level price), raising that region's defense power by the level's cumulative `economy.fortify_bonus` in all future combat there.",
       "type": "object",
       "properties": {
         "action": { "const": "fortify" },

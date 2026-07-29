@@ -101,9 +101,9 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 ## Decisiones congeladas — fórmulas de resolución (punto 2)
 
 **F1 — Combate determinista de aniquilación:**
-- `poder_atacante = unidades_atacantes`; `poder_defensor = unidades_defensoras + F × bonus_fort`
+- `poder_atacante = unidades_atacantes`; `poder_defensor = unidades_defensoras + bonus_fort(F)`, donde `bonus_fort(F)` es el bono acumulado declarado para el nivel `F` — escalonado por nivel, no un multiplicador plano (valores en F3)
 - Atacante > defensor: toma la región con `atacante − defensor` supervivientes; defensor eliminado
-- Atacante ≤ defensor: atacante eliminado; defensor pierde `max(0, atacante − F × bonus_fort)`
+- Atacante ≤ defensor: atacante eliminado; defensor pierde `max(0, atacante − bonus_fort(F))`
 - Cada combate es aniquilación del perdedor. Traza auto-explicable; seed no toca combate; eras rápidas = más runs por presupuesto
 
 **F2 — Colisión multi-parte:**
@@ -113,7 +113,7 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 
 **F3 — Valores iniciales (`era.yml`, calibración empírica declarada como knowledge gap):**
 - Yield: 1 esencia/región/tick; capitales: 2
-- Recruit: 2 esencia/unidad. Fortify: 5 esencia, bonus_fort 2, cap F=3
+- Recruit: 2 esencia/unidad. Fortify (escalonado por nivel, no plano): costo 5/10/20 esencia (niveles 1/2/3), `bonus_fort(F)` acumulado 2/5/10, cap F=3
 - Baseline aventurero: 5 esencia. Cap comercio: 3 esencia/tick
 - Rubber-band: >45% regiones. K coronación: 10 ticks. Cap de era: 100 ticks
 

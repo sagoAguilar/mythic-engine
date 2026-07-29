@@ -80,17 +80,37 @@ def test_unknown_region_rejected(state):
 
 
 def test_double_fortify_within_cap_both_land(state):
-    # capital-1 starts at 0, cap 3: two fortifies in one batch both land
+    # capital-1 starts at 0, cap 3: two fortifies in one batch both land -
+    # escalating cost (level_1 then level_2), needs essence bumped since
+    # the fixture's force-1 essence was sized for the old flat cost
+    working = copy.deepcopy(state)
+    working["forces"]["force-1"]["essence"] = 100
     delta = resolve_recruit_fortify(
-        state,
+        working,
         [_batch("force-1", [{"action": "fortify", "region": "capital-1"},
                             {"action": "fortify", "region": "capital-1"}])],
         CONFIG,
         SEED,
     )
     assert delta["fortification_changes"] == {"capital-1": 2}
-    assert delta["essence_changes"] == {"force-1": -2 * CONFIG.economy.fortify_cost}
+    assert delta["essence_changes"] == {
+        "force-1": -(CONFIG.economy.fortify_cost.level_1 + CONFIG.economy.fortify_cost.level_2)
+    }
     assert delta["rejected_orders"] == []
+
+
+def test_fortify_charges_the_current_levels_cost_not_a_flat_rate(state):
+    # capital-2 starts at fortification 2 (see fixture) - advancing to 3
+    # must charge level_3's cost, not level_1's, and not a flat rate
+    working = copy.deepcopy(state)
+    working["forces"]["force-2"]["essence"] = 100
+    delta = resolve_recruit_fortify(
+        working,
+        [_batch("force-2", [{"action": "fortify", "region": "capital-2"}])],
+        CONFIG,
+        SEED,
+    )
+    assert delta["essence_changes"] == {"force-2": -CONFIG.economy.fortify_cost.level_3}
 
 
 def test_non_phase3_orders_are_not_phase3_business(state):

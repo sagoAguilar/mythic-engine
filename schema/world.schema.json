@@ -70,6 +70,17 @@
   "additionalProperties": false,
   "$defs": {
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "fortify_level_curve": {
+      "description": "A per-level value (escalating, not a flat per-level multiplier) for exactly the 3 fortification levels F3 declares.",
+      "type": "object",
+      "properties": {
+        "level_1": { "type": "integer", "minimum": 1 },
+        "level_2": { "type": "integer", "minimum": 1 },
+        "level_3": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["level_1", "level_2", "level_3"],
+      "additionalProperties": false
+    },
     "region": {
       "type": "object",
       "properties": {
@@ -248,8 +259,8 @@
             "yield_capital": { "type": "integer", "minimum": 0 },
             "yield_ring": { "type": "integer", "minimum": 0 },
             "recruit_cost": { "type": "integer", "minimum": 1 },
-            "fortify_cost": { "type": "integer", "minimum": 1 },
-            "fortify_bonus": { "type": "integer", "minimum": 1 },
+            "fortify_cost": { "$ref": "#/$defs/fortify_level_curve" },
+            "fortify_bonus": { "$ref": "#/$defs/fortify_level_curve" },
             "fortify_cap": { "type": "integer", "minimum": 1 },
             "upkeep_divisor": { "type": "integer", "minimum": 1 }
           },

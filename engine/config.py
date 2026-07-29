@@ -40,13 +40,43 @@ class Orders:
 
 
 @dataclass(frozen=True)
+class FortifyCost:
+    """Essence cost to advance a region's fortification by one level (F5-adjacent,
+    escalating: reaching level 3 costs strictly more than level 1)."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_level(self, level: int) -> int:
+        """Cost to advance FROM ``level`` to ``level + 1`` (0-indexed)."""
+        return (self.level_1, self.level_2, self.level_3)[level]
+
+
+@dataclass(frozen=True)
+class FortifyBonus:
+    """Cumulative defense bonus a region's fortification grants, by level -
+    not a flat per-level multiplier; each level is its own committed value."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_level(self, level: int) -> int:
+        """Cumulative bonus AT ``level`` (0 for an unfortified region)."""
+        if level <= 0:
+            return 0
+        return (self.level_1, self.level_2, self.level_3)[level - 1]
+
+
+@dataclass(frozen=True)
 class Economy:
     yield_neutral: int
     yield_capital: int
     yield_ring: int
     recruit_cost: int
-    fortify_cost: int
-    fortify_bonus: int
+    fortify_cost: FortifyCost
+    fortify_bonus: FortifyBonus
     fortify_cap: int
     upkeep_divisor: int
 

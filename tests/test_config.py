@@ -27,6 +27,22 @@ def test_shipped_era_yml_loads():
     assert cfg.map.arms == 3
 
 
+def test_fortify_cost_curve_escalates_by_level():
+    cfg = load_era_config(ERA_YML)
+    # cost to advance FROM level 0/1/2 (0-indexed) - strictly widening, not flat
+    assert cfg.economy.fortify_cost.at_level(0) == 5
+    assert cfg.economy.fortify_cost.at_level(1) == 10
+    assert cfg.economy.fortify_cost.at_level(2) == 20
+
+
+def test_fortify_bonus_is_cumulative_per_level_not_a_flat_multiplier():
+    cfg = load_era_config(ERA_YML)
+    assert cfg.economy.fortify_bonus.at_level(0) == 0  # unfortified
+    assert cfg.economy.fortify_bonus.at_level(1) == 2
+    assert cfg.economy.fortify_bonus.at_level(2) == 5
+    assert cfg.economy.fortify_bonus.at_level(3) == 10
+
+
 def test_missing_key_fails_naming_the_key(tmp_path):
     copy = _mutated_copy(tmp_path, lambda d: d["economy"].pop("recruit_cost"))
     with pytest.raises(ConfigError, match=r"economy: missing key\(s\): recruit_cost"):

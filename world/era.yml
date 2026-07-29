@@ -21,8 +21,14 @@ economy:
   yield_capital: 2
   yield_ring: 2
   recruit_cost: 2              # essence per unit
-  fortify_cost: 5
-  fortify_bonus: 2             # defense power per fortification level
+  fortify_cost:                # escalating: reaching level 3 costs more than level 1
+    level_1: 5
+    level_2: 10
+    level_3: 20
+  fortify_bonus:                # cumulative defense bonus AT each level (not a flat multiplier)
+    level_1: 2
+    level_2: 5
+    level_3: 10
   fortify_cap: 3
   upkeep_divisor: 5            # essence upkeep per tick: floor(force's total units / this)
 

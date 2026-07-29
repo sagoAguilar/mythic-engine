@@ -140,6 +140,41 @@ def test_hunt_in_own_territory_merges_and_collects(state):
     assert delta["combats"] == [{"region": "arm-2-b", "rounds": []}]
 
 
+def test_fortify_level_2_defender_power_is_cumulative_bonus_not_flat(world):
+    # ring-1 bumped to fortification 2: defender power must be
+    # units + fortify_bonus.at_level(2) (=5), not fort*flat (e.g. 2*2=4)
+    working = copy.deepcopy(world)
+    working["regions"]["ring-1"]["fortification"] = 2
+    working["pending_combats"] = [{
+        "region": "ring-1",
+        "parties": [{"actor": "force-2", "count": 6, "kind": "attack", "target": None}],
+    }]
+    delta = resolve_combat(working, [], CONFIG, SEED)
+    round_ = delta["combats"][0]["rounds"][0]
+    assert round_["defender_power"] == 1 + CONFIG.economy.fortify_bonus.at_level(2)
+    assert round_["defender_power"] == 6
+    assert round_["winner"] == "force-1"  # tie favors defender
+    assert round_["defender_survivors"] == 0  # loss = max(0, 6 - 5) = 1
+
+
+def test_fortify_level_3_defender_power_is_cumulative_bonus_not_flat(world):
+    # ring-1 bumped to fortification 3 (cap): defender power must be
+    # units + fortify_bonus.at_level(3) (=10), not fort*flat (e.g. 3*2=6)
+    working = copy.deepcopy(world)
+    working["regions"]["ring-1"]["fortification"] = 3
+    working["pending_combats"] = [{
+        "region": "ring-1",
+        "parties": [{"actor": "force-2", "count": 12, "kind": "attack", "target": None}],
+    }]
+    delta = resolve_combat(working, [], CONFIG, SEED)
+    round_ = delta["combats"][0]["rounds"][0]
+    assert round_["defender_power"] == 1 + CONFIG.economy.fortify_bonus.at_level(3)
+    assert round_["defender_power"] == 11
+    assert round_["winner"] == "force-2"  # 12 > 11: attacker breaks through
+    assert round_["attacker_survivors"] == 1
+    assert round_["defender_survivors"] == 0
+
+
 def test_applied_delta_keeps_world_schema_valid(state, world):
     delta = resolve_combat(state, [], CONFIG, SEED)
     result = copy.deepcopy(world)

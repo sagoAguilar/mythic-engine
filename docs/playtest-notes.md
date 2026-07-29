@@ -592,6 +592,11 @@ collision actually cracked one). Two changes, converged:
 **Fortify: escalating cost and bonus, plus upkeep-or-erosion
 (illustrative numbers, not final):**
 
+**Implemented (2026-07-29):** the cost/bonus half of this table is
+real, locked, and live in `world/era.yml` / `engine/` (touches phase1,
+phase3, phase5, schema, `docs/intent.md` F1/F3). Upkeep/erosion (the
+right-hand column below) is still notes-only - see open question 2.
+
 | Level | Cost (was flat 5) | Cumulative bonus (was flat +2/level) | Upkeep/tick |
 |---|---|---|---|
 | 1 | 5 | +2 | 1 |
@@ -637,8 +642,9 @@ a premium.**
   intersection falls out of mechanics that already exist.
 
 **Open questions before this is spec-worthy:**
-1. All numbers above are illustrative/first-pass - cost/bonus/upkeep
-   curve for fortify, erosion rate and premium cost for siege.
+1. ~~All numbers above are illustrative/first-pass - cost/bonus curve
+   for fortify~~ - resolved and implemented (see above). Erosion rate
+   and premium cost for siege remain open.
 2. Exact erosion consequence for missed fortify upkeep - one level
    per missed tick was proposed, not confirmed as final.
 3. `siege` needs a new `move.schema.json` entry (force-only) and state

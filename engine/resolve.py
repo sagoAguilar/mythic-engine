@@ -224,6 +224,8 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
     p7 = resolve_yield(working, batches, config, seed)
     for force_id, change in p7["essence_changes"].items():
         working["forces"][force_id]["essence"] += change
+    for region_id, change in p7["fortification_changes"].items():
+        working["regions"][region_id]["fortification"] += change
     for region_id, loot in p7["loot_changes"].items():
         working["regions"][region_id]["loot"] = loot
 

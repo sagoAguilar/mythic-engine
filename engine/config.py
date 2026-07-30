@@ -70,6 +70,23 @@ class FortifyBonus:
 
 
 @dataclass(frozen=True)
+class FortifyUpkeep:
+    """Essence a fortified region costs its owner per tick, by level - unpaid
+    upkeep erodes that region's fortification by one level instead of
+    letting essence go negative (F5-adjacent, same escalating shape)."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_level(self, level: int) -> int:
+        """Upkeep owed AT ``level`` (0 for an unfortified region)."""
+        if level <= 0:
+            return 0
+        return (self.level_1, self.level_2, self.level_3)[level - 1]
+
+
+@dataclass(frozen=True)
 class Economy:
     yield_neutral: int
     yield_capital: int
@@ -77,6 +94,7 @@ class Economy:
     recruit_cost: int
     fortify_cost: FortifyCost
     fortify_bonus: FortifyBonus
+    fortify_upkeep: FortifyUpkeep
     fortify_cap: int
     upkeep_divisor: int
 

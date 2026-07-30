@@ -40,6 +40,10 @@ era:
       level_1: 2
       level_2: 5
       level_3: 10
+    fortify_upkeep:
+      level_1: 1
+      level_2: 3
+      level_3: 6
     fortify_cap: 3
     upkeep_divisor: 5
     fortify_cost:

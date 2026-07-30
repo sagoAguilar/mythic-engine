@@ -44,6 +44,8 @@ def test_applied_delta_keeps_world_schema_valid(state):
     world = copy.deepcopy(state)
     for force_id, change in delta["essence_changes"].items():
         world["forces"][force_id]["essence"] += change
+    for region_id, change in delta["fortification_changes"].items():
+        world["regions"][region_id]["fortification"] += change
     for region_id, loot in delta["loot_changes"].items():
         world["regions"][region_id]["loot"] = loot
     validate_world(world)  # the arbiter is caged too
@@ -95,6 +97,83 @@ def test_loot_expiring_this_tick_is_not_swept_yet(state):
     working["regions"]["arm-1-b"]["loot"]["expires_tick"] = 1
     delta = resolve_yield(working, [], CONFIG, SEED)
     assert delta["loot_changes"] == {}
+
+
+def test_fortify_upkeep_paid_when_essence_covers_it(state):
+    # capital-1 (force-1) fortified to level 1: upkeep 1, well within
+    # force-1's yield/reserve - pays quietly, no erosion
+    working = copy.deepcopy(state)
+    working["regions"]["capital-1"]["fortification"] = 1
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {}
+    # base delta (4, see test_phase7_matches_expected_delta) minus fortify_upkeep.at_level(1)=1
+    assert delta["essence_changes"]["force-1"] == 4 - CONFIG.economy.fortify_upkeep.at_level(1)
+
+
+def test_fortify_upkeep_erodes_when_essence_cannot_cover_it(state):
+    # force-3 has no essence reserve and no yield this tick (all its
+    # regions zeroed out); fortifying arm-3-a to level 1 means its
+    # upkeep (1) can't be paid from a 0-essence balance -> erodes
+    working = copy.deepcopy(state)
+    working["forces"]["force-3"]["essence"] = 0
+    for rid in ("capital-3", "arm-3-a", "ring-3"):
+        working["regions"][rid]["yield"] = 0
+    working["regions"]["arm-3-a"]["fortification"] = 1
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {"arm-3-a": -1}
+    # the unpaid upkeep is not deducted - erosion replaces the charge
+    assert delta["essence_changes"].get("force-3", 0) == 0
+
+
+def test_fortify_upkeep_uses_the_forces_real_balance_not_just_tick_flow(state):
+    # force-3 sits on a large essence reserve even though this tick's
+    # flow alone (yield only, no unit upkeep here) would already cover
+    # it - confirms the check is against the actual balance, not a
+    # marginal flow that would coincidentally look insufficient
+    working = copy.deepcopy(state)
+    working["forces"]["force-3"]["essence"] = 1000
+    working["regions"]["arm-3-a"]["fortification"] = 3  # upkeep 6
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {}
+    assert delta["essence_changes"]["force-3"] == 5 - CONFIG.economy.fortify_upkeep.at_level(3)
+
+
+def test_fortify_erosion_pays_cheapest_level_first(state):
+    # force-1 holds two fortified regions: capital-1 at level 1 (upkeep 1)
+    # and ring-1 at level 2 (upkeep 3). Yields zeroed so the only flow is
+    # unit upkeep (6 units -> floor(6/5)=1); essence set to 3 so the
+    # remaining pool (3 - 1 = 2) covers the cheaper level-1 upkeep but
+    # not both - ring-1 (pricier) erodes, capital-1 (cheaper) is paid
+    working = copy.deepcopy(state)
+    working["forces"]["force-1"]["essence"] = 3
+    for rid in ("capital-1", "ring-1", "arm-1-a"):
+        working["regions"][rid]["yield"] = 0
+    working["regions"]["capital-1"]["fortification"] = 1
+    working["regions"]["ring-1"]["fortification"] = 2
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {"ring-1": -1}
+    # base flow -1 (unit upkeep only) minus capital-1's paid upkeep (1)
+    assert delta["essence_changes"]["force-1"] == -2
+
+
+def test_fortify_erosion_tiebreaks_by_region_id_at_the_same_level(state):
+    # force-1 holds two regions at the identical fortification level;
+    # yields zeroed and essence trimmed so the remaining pool covers
+    # exactly one of the two level-1 upkeeps (cost 1 each) - the
+    # lexically smaller region id ("arm-1-a" < "arm-1-b") pays first,
+    # the other erodes
+    working = copy.deepcopy(state)
+    working["forces"]["force-1"]["essence"] = 2
+    for rid in ("capital-1", "ring-1", "arm-1-a"):
+        working["regions"][rid]["yield"] = 0
+    working["regions"]["arm-1-a"]["fortification"] = 1
+    working["regions"]["arm-1-b"]["fortification"] = 1
+    working["regions"]["arm-1-b"]["owner"] = "force-1"
+    working["regions"]["arm-1-b"]["yield"] = 0
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    # flow = 0 yield - 1 unit upkeep (6 units, floor(6/5)=1); remaining
+    # pool = essence(2) - 1 = 1 - covers exactly one level-1 upkeep (1)
+    assert delta["fortification_changes"] == {"arm-1-b": -1}
 
 
 def test_moves_are_not_phase7_business(state):

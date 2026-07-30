@@ -29,6 +29,10 @@ economy:
     level_1: 2
     level_2: 5
     level_3: 10
+  fortify_upkeep:               # essence/tick per fortified region AT each level; unpaid -> erodes 1 level
+    level_1: 1
+    level_2: 3
+    level_3: 6
   fortify_cap: 3
   upkeep_divisor: 5            # essence upkeep per tick: floor(force's total units / this)
 

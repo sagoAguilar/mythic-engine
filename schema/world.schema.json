@@ -261,10 +261,11 @@
             "recruit_cost": { "type": "integer", "minimum": 1 },
             "fortify_cost": { "$ref": "#/$defs/fortify_level_curve" },
             "fortify_bonus": { "$ref": "#/$defs/fortify_level_curve" },
+            "fortify_upkeep": { "$ref": "#/$defs/fortify_level_curve" },
             "fortify_cap": { "type": "integer", "minimum": 1 },
             "upkeep_divisor": { "type": "integer", "minimum": 1 }
           },
-          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_cap", "upkeep_divisor"],
+          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_upkeep", "fortify_cap", "upkeep_divisor"],
           "additionalProperties": false
         },
         "combat": {

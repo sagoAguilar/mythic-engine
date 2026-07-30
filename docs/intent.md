@@ -124,6 +124,8 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 
 **F5 — Upkeep de esencia:** cada fuerza paga `floor(unidades_totales / upkeep_divisor)` de esencia por tick, neteado contra el rendimiento en la misma fase 7 (propiedad post-combate, mismo momento que el yield). Una fuerza con menos unidades que `upkeep_divisor` no paga nada — el costo solo muerde una vez que el ejército ya creció, no en la apertura. `upkeep_divisor` en `era.yml`, calibración empírica declarada como knowledge gap, igual que F3: valor inicial `5`, razonado (ningún tope de guarnición existe en ninguna región, así que sin este costo la esencia y las unidades acumulan sin límite), no dato jugado.
 
+**F5 (continuación) — Upkeep de fortificación, o erosión:** además del upkeep de unidades, cada región fortificada (nivel > 0) de una fuerza le cuesta `economy.fortify_upkeep.at_level(nivel)` esencia por tick — mismo curva escalonada por nivel que costo/bono (valores iniciales 1/3/6 en niveles 1/2/3, calibración empírica como F3), pagado en la misma fase 7, después del upkeep de unidades y neteado contra el saldo real de la fuerza (esencia acumulada más el flujo neto del tick, no solo el flujo). Si el saldo no alcanza para cubrir todas sus regiones fortificadas, la fuerza paga en orden ascendente (nivel, luego ID léxico de la región) — el compromiso más barato primero — hasta agotar el saldo; cada región que no pudo pagarse pierde exactamente 1 nivel de fortificación ese tick (nunca bajo 0). Sin reembolso ni penalización adicional más allá del nivel perdido — es pura erosión, no una orden ni una acción de la fuerza.
+
 ## Decisiones congeladas — cierres finales (vacíos 1–4)
 
 **Política NPC (determinista, máx 1 orden/tick aunque el cap sea mayor — diferencia de volumen visible en traza):**
@@ -161,7 +163,7 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
                      # umbrales de reputación, tabla de triggers, presupuesto tokens,
                      # caps de órdenes por tick, cap de comercio aventurero/tick,
                      # costos recruit/fortify, cap F de fortificación,
-                     # upkeep_divisor (F5)
+                     # upkeep_divisor y fortify_upkeep (F5)
   tick.txt           # puntero atómico de tick
   regions/<id>.yml   # dueño, recursos base, unidades presentes, fortificación, botín activo
   forces/<id>.yml    # persona ref, esencia, unidades

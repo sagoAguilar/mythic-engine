@@ -11,5 +11,6 @@ essence_changes:
   force-1: 4   # 5 yield - 1 upkeep
   force-2: 5   # 6 yield - 1 upkeep
   force-3: 5   # 5 yield - 0 upkeep
+fortification_changes: {}   # no region here is fortified
 loot_changes:
   arm-1-b: null

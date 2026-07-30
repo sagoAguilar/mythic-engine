@@ -43,6 +43,14 @@ def test_fortify_bonus_is_cumulative_per_level_not_a_flat_multiplier():
     assert cfg.economy.fortify_bonus.at_level(3) == 10
 
 
+def test_fortify_upkeep_escalates_by_level():
+    cfg = load_era_config(ERA_YML)
+    assert cfg.economy.fortify_upkeep.at_level(0) == 0  # unfortified
+    assert cfg.economy.fortify_upkeep.at_level(1) == 1
+    assert cfg.economy.fortify_upkeep.at_level(2) == 3
+    assert cfg.economy.fortify_upkeep.at_level(3) == 6
+
+
 def test_missing_key_fails_naming_the_key(tmp_path):
     copy = _mutated_copy(tmp_path, lambda d: d["economy"].pop("recruit_cost"))
     with pytest.raises(ConfigError, match=r"economy: missing key\(s\): recruit_cost"):

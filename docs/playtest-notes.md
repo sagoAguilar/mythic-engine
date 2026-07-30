@@ -594,8 +594,15 @@ collision actually cracked one). Two changes, converged:
 
 **Implemented (2026-07-29):** the cost/bonus half of this table is
 real, locked, and live in `world/era.yml` / `engine/` (touches phase1,
-phase3, phase5, schema, `docs/intent.md` F1/F3). Upkeep/erosion (the
-right-hand column below) is still notes-only - see open question 2.
+phase3, phase5, schema, `docs/intent.md` F1/F3).
+
+**Implemented (2026-07-30):** the upkeep/erosion half (right-hand
+column below) is also real and live. Paid in phase 7 after unit upkeep,
+checked against the force's actual essence balance (not just the
+tick's flow) - cheapest fortified region pays first, region id as
+tiebreak, and anything left unpaid erodes exactly one level rather
+than pushing essence negative. `siege` itself (below) remains
+notes-only.
 
 | Level | Cost (was flat 5) | Cumulative bonus (was flat +2/level) | Upkeep/tick |
 |---|---|---|---|
@@ -641,19 +648,22 @@ a premium.**
   naturally coincide with a live siege with zero new rule needed - the
   intersection falls out of mechanics that already exist.
 
-**Open questions before this is spec-worthy:**
+**Open questions before `siege` is spec-worthy** (fortify's own
+cost/bonus/upkeep-erosion is fully implemented, nothing left open on
+that side):
 1. ~~All numbers above are illustrative/first-pass - cost/bonus curve
-   for fortify~~ - resolved and implemented (see above). Erosion rate
-   and premium cost for siege remain open.
-2. Exact erosion consequence for missed fortify upkeep - one level
-   per missed tick was proposed, not confirmed as final.
+   for fortify~~ - resolved and implemented (see above).
+2. ~~Exact erosion consequence for missed fortify upkeep~~ - resolved
+   and implemented: erodes exactly one level per tick it can't be paid
+   (see above). Erosion rate and premium cost for `siege` itself
+   (a separate, not-yet-built mechanic) remain open.
 3. `siege` needs a new `move.schema.json` entry (force-only) and state
    to track an in-progress siege across ticks (which region, which
    attacker, ticks elapsed, erosion accumulated).
-4. Relationship to idea #4's general unit-upkeep proposal - fortify
-   upkeep and unit upkeep are being designed as two separate costs;
-   worth checking they compose sensibly rather than fighting each
-   other once both exist.
+4. ~~Relationship to idea #4's general unit-upkeep proposal~~ -
+   resolved: both live in phase 7 from the same essence pool, unit
+   upkeep paid first, fortify upkeep second against what's left -
+   they compose rather than fight.
 
 ### 11. Decree — a category of infrequent, high-impact force actions
 

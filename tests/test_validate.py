@@ -21,6 +21,7 @@ ACTIONS = [
     "accept_quest",
     "spawn_adventurer",
     "claim_loot",
+    "trade",
 ]
 
 

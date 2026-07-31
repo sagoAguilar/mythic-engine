@@ -218,10 +218,14 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         del working["adventurers"][death["id"]]
     working["graveyard"].extend(copy.deepcopy(p5["graveyard_additions"]))
 
-    # phase 6: claim_loot
+    # phase 6: claim_loot, trade
     p6 = resolve_claim_loot(working, batches, config, seed)
-    for adventurer_id, change in p6["essence_changes"].items():
-        working["adventurers"][adventurer_id]["essence"] += change
+    for actor, change in p6["essence_changes"].items():
+        pool = working["adventurers"] if actor.startswith("adventurer-") else working["forces"]
+        pool[actor]["essence"] += change
+    for adventurer_id, by_force in p6["reputation_changes"].items():
+        for force_id, change in by_force.items():
+            working["adventurers"][adventurer_id]["reputation"][force_id] += change
     for region_id, loot in p6["loot_changes"].items():
         working["regions"][region_id]["loot"] = loot
 
@@ -292,7 +296,8 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         "quests_spawned": p9["quests_spawned"],
         "quests_resolved": p8["quests_resolved"],
         "adventurer_moves": p4["adventurer_moves"],
-        "loot_claims": p6["essence_changes"],
+        "loot_claims": p6["loot_claims"],
+        "trade_results": p6["trade_results"],
         "adventurer_spawned": sorted(p2["spawned"]),
         "adventurer_deaths": deaths_this_tick,
         "supremacy": p10,

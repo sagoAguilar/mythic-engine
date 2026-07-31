@@ -39,7 +39,11 @@ era:
     personal_quest:
       target: era
       type: survive
-    trade_cap_per_tick: 3
+    trade_cost: 3
+    trade_success_pct:
+      ring: 50
+      arm: 75
+      capital: 100
   bootstrap:
     starting_essence: 10
     starting_units_capital: 3

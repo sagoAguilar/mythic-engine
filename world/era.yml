@@ -47,7 +47,11 @@ combat:
 
 adventurer:
   baseline_essence: 5
-  trade_cap_per_tick: 3
+  trade_cost: 3                # flat essence per trade attempt (not a per-tick volume cap)
+  trade_success_pct:            # seeded success chance by the region's structural depth tier
+    ring: 50
+    arm: 75
+    capital: 100
   loot_burn_fraction: 0.5      # fraction of essence burned on death
   loot_dissipation_ticks: 5    # M: ticks before regional loot dissipates
   kill_order_cost: 1           # orders consumed by target: adventurer declaration

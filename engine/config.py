@@ -131,9 +131,23 @@ class PersonalQuest:
 
 
 @dataclass(frozen=True)
+class TradeSuccessPct:
+    """Seeded trade success chance (F8), by the region's structural depth
+    tier - ring is the riskiest, capital is guaranteed."""
+
+    ring: int
+    arm: int
+    capital: int
+
+    def for_tier(self, tier: str) -> int:
+        return {"ring": self.ring, "arm": self.arm, "capital": self.capital}[tier]
+
+
+@dataclass(frozen=True)
 class Adventurer:
     baseline_essence: int
-    trade_cap_per_tick: int
+    trade_cost: int
+    trade_success_pct: TradeSuccessPct
     loot_burn_fraction: float
     loot_dissipation_ticks: int
     kill_order_cost: int

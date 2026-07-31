@@ -4,8 +4,12 @@
 # so sago claims the 3 essence and the loot is extinguished.
 essence_changes:
   adventurer-sago: 3
+reputation_changes: {}
 loot_changes:
   ring-3: null
+loot_claims:
+  adventurer-sago: 3
+trade_results: []
 rejected_orders:
   - actor: adventurer-elder
     index: 0

@@ -22,7 +22,7 @@
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "count": { "type": "integer", "minimum": 1 },
     "order": {
-      "description": "One order in the batch: exactly one of the nine catalog actions below.",
+      "description": "One order in the batch: exactly one of the ten catalog actions below.",
       "oneOf": [
         { "$ref": "#/$defs/move_units" },
         { "$ref": "#/$defs/attack_region" },
@@ -32,7 +32,8 @@
         { "$ref": "#/$defs/decree" },
         { "$ref": "#/$defs/accept_quest" },
         { "$ref": "#/$defs/spawn_adventurer" },
-        { "$ref": "#/$defs/claim_loot" }
+        { "$ref": "#/$defs/claim_loot" },
+        { "$ref": "#/$defs/trade" }
       ]
     },
     "move_units": {
@@ -134,6 +135,16 @@
       "type": "object",
       "properties": {
         "action": { "const": "claim_loot" },
+        "region": { "$ref": "#/$defs/region_id" }
+      },
+      "required": ["action", "region"],
+      "additionalProperties": false
+    },
+    "trade": {
+      "description": "Adventurer-only (F8): trades essence for reputation with whichever force owns the region the adventurer currently occupies - that region must belong to a force (not neutral), and the adventurer's reputation with it must already meet reputation.thresholds.trade. Costs a flat adventurer.trade_cost essence, but only on success - a failed roll spends the order slot and nothing else. Success chance is seeded (sha256(seed:tick:adventurer_id:force_id)) and depends on the region's structural depth tier (adventurer.trade_success_pct): ring is riskiest, arm safer, capital guaranteed. On success essence genuinely transfers to the force (not destroyed) and reputation rises by reputation.deltas.trade_per_tick.",
+      "type": "object",
+      "properties": {
+        "action": { "const": "trade" },
         "region": { "$ref": "#/$defs/region_id" }
       },
       "required": ["action", "region"],

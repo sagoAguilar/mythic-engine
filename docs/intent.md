@@ -43,7 +43,7 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 | Loot al morir | Fracción fija se quema (`era.yml`); resto depositado en la región de la muerte como botín neutral reclamable por M ticks, luego se disipa. El asesino cobra solo si controla la posición. Muerte sin asesino: mismo mecanismo sin beneficiario |
 | Crecimiento | Recursos (reglas comunes), reputación por fuerza (contador determinista; umbrales desbloquean comercio/refugio/encargos), capacidades por logro (desbloqueos discretos, cada uno una acción nueva en el schema). Stats RPG continuos: rechazado. Techo de poder duro: nunca decide eras por sí solo |
 | Victoria propia | No compite por dominancia. Quest personal declarada en `era.yml`: acumular X, completar cadena de misiones, sobrevivir la era, o variante de bando: "que X corone" |
-| Influencia sobre el desenlace | Canales legítimos: comercio por reputación (con cap de volumen por tick en `era.yml`), ejecución de quests rubber-band menores, obstrucción posicional, botín póstumo. Kingmaking permitido dentro de caps |
+| Influencia sobre el desenlace | Canales legítimos: comercio por reputación (acción plana `trade`, costo fijo `adventurer.trade_cost`, no un cap de volumen escalable — F8), ejecución de quests rubber-band menores, obstrucción posicional, botín póstumo. Kingmaking permitido dentro de caps |
 | Techo verificable | Replay contrafactual post-era: movimientos humanos sustituidos por política NPC. Si el ganador cambia, el humano decidió la era → caps se aprietan. Métrica: delta de resultado, no impresión |
 | Legado | Al coronar una fuerza, si la reputación del aventurero supera umbral: título diegético en chronicle/graveyard, persistente trans-era, valor mecánico cero. Pago en memoria del mundo, no en poder |
 
@@ -76,6 +76,7 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 | `accept_quest` | según eligibility | quest_id | eligibility, cupo, stake, posición | reclamo; stake cobrado |
 | `spawn_adventurer` | humano | name, origin | sin entidad viva del username; origin spawneable | entidad con baseline |
 | `claim_loot` | aventurero | region | presente en región con botín activo | +botín; botín extinguido |
+| `trade` | aventurero | region | presente en region; region propiedad de una fuerza; reputación ≥ umbral comercio; esencia ≥ costo | tirada con seed por tier de profundidad (F8); éxito: −esencia aventurero, +esencia fuerza, +reputación; fallo: nada (solo la orden) |
 
 `move_units` / `attack_region` separados: intención explícita — el harness lee agresión declarada, no deducida.
 
@@ -117,7 +118,7 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 **F3 — Valores iniciales (`era.yml`, calibración empírica declarada como knowledge gap):**
 - Yield: 1 esencia/región/tick; capitales: 2
 - Recruit: 2 esencia/unidad. Fortify (escalonado por nivel, no plano): costo 5/10/20 esencia (niveles 1/2/3), `bonus_fort(F)` acumulado 2/5/10, cap F=3
-- Baseline aventurero: 5 esencia. Cap comercio: 3 esencia/tick
+- Baseline aventurero: 5 esencia. Costo de `trade`: 3 esencia por intento (acción plana, no cap de volumen — F8)
 - Rubber-band: >45% regiones. K coronación: 10 ticks. Cap de era: 100 ticks
 
 **F4 — Aventurero en combate:**
@@ -143,6 +144,8 @@ Sin aislamiento especial (decisión explícita): un asedio no bloquea nada en `t
 - `surge_recruit` (region, count): mismas precondiciones que `recruit` (región propia, esencia ≥ count × `recruit_cost`), pero entrega `2 × count` unidades — el costo por unidad y el upkeep de las unidades resultantes no cambian, solo el rendimiento de la acción.
 
 El costo real de `surge_recruit` es un **recargo plano por invocarlo**, encima del costo normal de recruit, que escala con uso consecutivo y resetea a base en cuanto pasa un tick sin usarlo ("castiga el spam, perdona la contención"). Curva de 3 niveles igual de forma que `fortify_cost`/`fortify_bonus` (`economy.decree_surge_surcharge`, valores iniciales 5/10/20, calibración empírica como F3): el streak persiste por fuerza (`surge_streak` en `forces/<id>.yml`, nunca visto por el jugador como recurso — es contador interno). Cada tick que la fuerza invoca `surge_recruit` al menos una vez, el streak sube en 1 (tope 3, no sigue duplicando después del tercer uso consecutivo) y el recargo de ESE tick se cobra según el streak resultante — un mismo streak cubre todas las órdenes `surge_recruit` de la misma fuerza en el mismo tick, no se vuelve a escalar dentro del tick. Cualquier tick en que la fuerza no invoque `surge_recruit` resetea su streak a 0, sin excepción ni gracia adicional.
+
+**F8 — Trade (aventurero ↔ fuerza, fase 6, junto a `claim_loot`):** el flujo que `docs/intent.md` original dejaba sin definir se resuelve como **tributo, no intercambio** — la esencia se transfiere genuinamente a la fuerza (segunda transferencia real de la economía, tras el botín; en todo el resto del juego la esencia se acuña o se destruye, nunca se mueve entre libros), nunca al revés. `trade` (aventurero, region — debe ser la posición actual) exige, en orden: (1) la región es propiedad de una fuerza (no neutral); (2) la reputación del aventurero con esa fuerza ya alcanza `reputation.thresholds.trade` (el umbral que desbloquea comercio, ya congelado — camino de arranque real: quests que dañan a una fuerza rival otorgan `quest_damages_force_rivals` a las demás, alcanzable en una sola quest); (3) esencia (pool pre-tick, compartido con recruit/fortify) ≥ `adventurer.trade_cost` (acción plana, no escalable — mismo patrón que `fortify`). Pasadas las tres, el intento **siempre resuelve — nunca se rechaza por la parte probabilística**, vía tirada seedeada: `sha256(seed:tick:actor:force) % 100` contra el umbral de éxito del tier de profundidad ESTRUCTURAL de la región (por prefijo del id — `capital-`, `arm-`, o ninguno de los dos → `ring` — independiente de quién la posea actualmente): `adventurer.trade_success_pct` (valores iniciales ring 50 / arm 75 / capital 100, calibración empírica como F3). Éxito: −costo esencia aventurero, +costo esencia fuerza, +`reputation.deltas.trade_per_tick` reputación (clamped a la escala de reputación, misma disciplina que las recompensas de quests en fase 8). Fallo: nada se mueve — ni esencia ni reputación — solo se gastó la orden, mismo principio que perder un duelo F1 no es "rechazado".
 
 ## Decisiones congeladas — cierres finales (vacíos 1–4)
 
@@ -179,8 +182,8 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
   era.yml            # cadencia, cap de ticks, seed, K de coronación,
                      # baseline de recursos, quema de loot, M de disipación,
                      # umbrales de reputación, tabla de triggers, presupuesto tokens,
-                     # caps de órdenes por tick, cap de comercio aventurero/tick,
-                     # costos recruit/fortify, cap F de fortificación,
+                     # caps de órdenes por tick, trade_cost y trade_success_pct
+                     # (F8), costos recruit/fortify, cap F de fortificación,
                      # upkeep_divisor y fortify_upkeep (F5),
                      # siege_erosion_interval y siege_upkeep (F6),
                      # decree_surge_surcharge (F7)

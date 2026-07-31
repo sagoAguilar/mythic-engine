@@ -51,6 +51,14 @@ def test_decree_surge_surcharge_escalates_and_caps_at_the_third_tier():
     assert cfg.economy.decree_surge_surcharge.at_streak(4) == 20  # never doubles past tier 3
 
 
+def test_trade_success_pct_by_depth_tier():
+    cfg = load_era_config(ERA_YML)
+    assert cfg.adventurer.trade_cost == 3
+    assert cfg.adventurer.trade_success_pct.for_tier("ring") == 50
+    assert cfg.adventurer.trade_success_pct.for_tier("arm") == 75
+    assert cfg.adventurer.trade_success_pct.for_tier("capital") == 100
+
+
 def test_fortify_upkeep_escalates_by_level():
     cfg = load_era_config(ERA_YML)
     assert cfg.economy.fortify_upkeep.at_level(0) == 0  # unfortified

@@ -306,7 +306,17 @@
           "type": "object",
           "properties": {
             "baseline_essence": { "type": "integer", "minimum": 0 },
-            "trade_cap_per_tick": { "type": "integer", "minimum": 0 },
+            "trade_cost": { "type": "integer", "minimum": 0 },
+            "trade_success_pct": {
+              "type": "object",
+              "properties": {
+                "ring": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "arm": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "capital": { "type": "integer", "minimum": 0, "maximum": 100 }
+              },
+              "required": ["ring", "arm", "capital"],
+              "additionalProperties": false
+            },
             "loot_burn_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
             "loot_dissipation_ticks": { "type": "integer", "minimum": 1 },
             "kill_order_cost": { "type": "integer", "minimum": 1 },
@@ -320,7 +330,7 @@
               "additionalProperties": false
             }
           },
-          "required": ["baseline_essence", "trade_cap_per_tick", "loot_burn_fraction", "loot_dissipation_ticks", "kill_order_cost", "personal_quest"],
+          "required": ["baseline_essence", "trade_cost", "trade_success_pct", "loot_burn_fraction", "loot_dissipation_ticks", "kill_order_cost", "personal_quest"],
           "additionalProperties": false
         },
         "reputation": {

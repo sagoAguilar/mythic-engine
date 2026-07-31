@@ -621,6 +621,25 @@ that garrison size has no cap anywhere in the schema, fortified or not
 - fortification level and raw unit count are two totally uncapped,
 unrelated axes today.
 
+**Implemented (2026-07-31):** `siege` itself is now real and live -
+`from`/`to`/`count` (same shape as `attack_region`), force-only, one
+per region, no re-declaration on later ticks. Committed units leave the
+garrison economy entirely (that idle opportunity cost is the premium -
+no essence to declare); it costs its attacker a flat `siege_upkeep`
+(3/tick, F6) once active, paid in phase 7 after unit and fortify
+upkeep from the same real balance. Unpaid ends it immediately, no
+partial erosion. Paid ticks accumulate toward `siege_erosion_interval`
+(2), eroding the target's fortification by one level each time it
+lands - stacks correctly with fortify's own upkeep-erosion on the same
+region via a shared floor-0 guard. Ends automatically the instant the
+target changes owner (by anyone) or its fortification hits 0 - sieging
+alone never captures, only softens the wall for a real `attack_region`.
+Committed units return home on any ending if the attacker still holds
+the origin region, otherwise lost. New persistent `/world/sieges/`
+state; the resolver defers merging a freshly-declared siege until
+after that tick's phase 7 runs, so it never owes upkeep or erodes on
+its own declare-tick.
+
 **`siege`: a new multi-tick action that eats fortification faster, at
 a premium.**
 - Erodes fortification over several ticks (proposed: -1 level every
@@ -648,22 +667,19 @@ a premium.**
   naturally coincide with a live siege with zero new rule needed - the
   intersection falls out of mechanics that already exist.
 
-**Open questions before `siege` is spec-worthy** (fortify's own
-cost/bonus/upkeep-erosion is fully implemented, nothing left open on
-that side):
+**Idea #10 is now fully implemented, nothing left open:**
 1. ~~All numbers above are illustrative/first-pass - cost/bonus curve
-   for fortify~~ - resolved and implemented (see above).
+   for fortify~~ - resolved and implemented.
 2. ~~Exact erosion consequence for missed fortify upkeep~~ - resolved
-   and implemented: erodes exactly one level per tick it can't be paid
-   (see above). Erosion rate and premium cost for `siege` itself
-   (a separate, not-yet-built mechanic) remain open.
-3. `siege` needs a new `move.schema.json` entry (force-only) and state
-   to track an in-progress siege across ticks (which region, which
-   attacker, ticks elapsed, erosion accumulated).
+   and implemented: erodes exactly one level per tick it can't be paid.
+   ~~Erosion rate and premium cost for `siege`~~ - resolved: interval 2,
+   flat upkeep 3/tick.
+3. ~~`siege` needs a new `move.schema.json` entry and state to track an
+   in-progress siege~~ - resolved and implemented (see above).
 4. ~~Relationship to idea #4's general unit-upkeep proposal~~ -
-   resolved: both live in phase 7 from the same essence pool, unit
-   upkeep paid first, fortify upkeep second against what's left -
-   they compose rather than fight.
+   resolved: unit upkeep, fortify upkeep, and siege upkeep all draw
+   from the same phase-7 essence pool in that order - they compose
+   rather than fight.
 
 ### 11. Decree — a category of infrequent, high-impact force actions
 

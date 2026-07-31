@@ -82,6 +82,7 @@ def load_state(state_dir: Path) -> dict:
             "active": _load_dir(world / "quests" / "active"),
             "resolved": _load_dir(world / "quests" / "resolved"),
         },
+        "sieges": _load_dir(world / "sieges"),
         "graveyard": graveyard,
         "supremacy": _load_yaml(world / "supremacy.yml"),
     }
@@ -92,7 +93,7 @@ def load_state(state_dir: Path) -> dict:
 def write_state(state_dir: Path, state: dict, chronicle: str) -> None:
     """Write the next-tick state tree; era.yml is never rewritten."""
     world = state_dir / "world"
-    for sub in ("regions", "forces", "quests/active", "quests/resolved", "graveyard"):
+    for sub in ("regions", "forces", "quests/active", "quests/resolved", "sieges", "graveyard"):
         directory = world / sub
         if directory.exists():
             shutil.rmtree(directory)
@@ -113,6 +114,8 @@ def write_state(state_dir: Path, state: dict, chronicle: str) -> None:
     for status in ("active", "resolved"):
         for quest_id, quest in state["quests"][status].items():
             dump(world / "quests" / status / f"{quest_id}.yml", quest)
+    for region_id, siege in state["sieges"].items():
+        dump(world / "sieges" / f"{region_id}.yml", siege)
     for entry in state["graveyard"]:
         name = f"{entry['id']}-e{entry['era']}-t{entry['died_tick']}.yml"
         dump(world / "graveyard" / name, entry)
@@ -221,13 +224,23 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         working["regions"][region_id]["loot"] = loot
 
     # phase 7: economic yield on post-combat ownership
+    # (working["sieges"] still holds only pre-tick sieges here - a siege
+    # started by phase 4 this same tick is merged in only after this
+    # block, so it can never owe upkeep or erode on its own declare-tick)
     p7 = resolve_yield(working, batches, config, seed)
     for force_id, change in p7["essence_changes"].items():
         working["forces"][force_id]["essence"] += change
     for region_id, change in p7["fortification_changes"].items():
         working["regions"][region_id]["fortification"] += change
+    for region_id, change in p7["unit_changes"].items():
+        working["regions"][region_id]["units"] += change
     for region_id, loot in p7["loot_changes"].items():
         working["regions"][region_id]["loot"] = loot
+    for region_id in p7["sieges_ended"]:
+        del working["sieges"][region_id]
+    for region_id, ticks_elapsed in p7["siege_progress"].items():
+        working["sieges"][region_id]["ticks_elapsed"] = ticks_elapsed
+    working["sieges"].update(copy.deepcopy(p4["sieges_started"]))
 
     # phase 8: quest objectives against post-combat state
     p8 = resolve_quests(working, batches, config, seed)

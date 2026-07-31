@@ -47,6 +47,12 @@
       "required": ["active", "resolved"],
       "additionalProperties": false
     },
+    "sieges": {
+      "description": "Active sieges (F6), keyed by the besieged region. Declared once in phase 4, progressed/ended in phase 7 - see fortify_level_curve-adjacent economy.siege_erosion_interval and economy.siege_upkeep.",
+      "type": "object",
+      "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/siege" } },
+      "additionalProperties": false
+    },
     "graveyard": {
       "type": "array",
       "items": { "$ref": "#/$defs/graveyard_entry" }
@@ -66,7 +72,7 @@
       "additionalProperties": false
     }
   },
-  "required": ["era", "tick", "combats_last_tick", "regions", "forces", "adventurers", "quests", "graveyard", "supremacy"],
+  "required": ["era", "tick", "combats_last_tick", "regions", "forces", "adventurers", "quests", "sieges", "graveyard", "supremacy"],
   "additionalProperties": false,
   "$defs": {
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
@@ -202,6 +208,19 @@
       "required": ["id", "type", "tier", "eligibility", "reward", "stake", "deadline", "max_claimants", "claimed_by", "progress", "params"],
       "additionalProperties": false
     },
+    "siege": {
+      "description": "F6: an in-progress siege against the region this record is keyed by (the besieged region itself, not stored redundantly here).",
+      "type": "object",
+      "properties": {
+        "attacker": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
+        "defender": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
+        "from": { "$ref": "#/$defs/region_id" },
+        "units": { "type": "integer", "minimum": 1 },
+        "ticks_elapsed": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["attacker", "defender", "from", "units", "ticks_elapsed"],
+      "additionalProperties": false
+    },
     "graveyard_entry": {
       "type": "object",
       "properties": {
@@ -263,9 +282,11 @@
             "fortify_bonus": { "$ref": "#/$defs/fortify_level_curve" },
             "fortify_upkeep": { "$ref": "#/$defs/fortify_level_curve" },
             "fortify_cap": { "type": "integer", "minimum": 1 },
-            "upkeep_divisor": { "type": "integer", "minimum": 1 }
+            "upkeep_divisor": { "type": "integer", "minimum": 1 },
+            "siege_erosion_interval": { "type": "integer", "minimum": 1 },
+            "siege_upkeep": { "type": "integer", "minimum": 0 }
           },
-          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_upkeep", "fortify_cap", "upkeep_divisor"],
+          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_upkeep", "fortify_cap", "upkeep_divisor", "siege_erosion_interval", "siege_upkeep"],
           "additionalProperties": false
         },
         "combat": {

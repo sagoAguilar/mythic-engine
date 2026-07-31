@@ -68,6 +68,7 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 |---|---|---|---|---|
 | `move_units` | ambos | from, to, count | unidades ≥ count en from; to adyacente; to propia o neutral | transferencia |
 | `attack_region` | fuerzas | from, to, count | ídem; to hostil | combate en fase 5 |
+| `siege` | fuerzas | from, to, count | unidades ≥ count en from; to adyacente; to hostil con fortificación > 0; to sin asedio activo | unidades comprometidas (fuera de juego, sin combate); crea asedio persistente (F6) |
 | `recruit` | fuerzas | region, count | región propia; esencia ≥ count × costo | −esencia, +unidades |
 | `fortify` | fuerzas | region | región propia; esencia ≥ costo | +1 fortificación, persistente, cap F |
 | `accept_quest` | según eligibility | quest_id | eligibility, cupo, stake, posición | reclamo; stake cobrado |
@@ -126,6 +127,14 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 
 **F5 (continuación) — Upkeep de fortificación, o erosión:** además del upkeep de unidades, cada región fortificada (nivel > 0) de una fuerza le cuesta `economy.fortify_upkeep.at_level(nivel)` esencia por tick — mismo curva escalonada por nivel que costo/bono (valores iniciales 1/3/6 en niveles 1/2/3, calibración empírica como F3), pagado en la misma fase 7, después del upkeep de unidades y neteado contra el saldo real de la fuerza (esencia acumulada más el flujo neto del tick, no solo el flujo). Si el saldo no alcanza para cubrir todas sus regiones fortificadas, la fuerza paga en orden ascendente (nivel, luego ID léxico de la región) — el compromiso más barato primero — hasta agotar el saldo; cada región que no pudo pagarse pierde exactamente 1 nivel de fortificación ese tick (nunca bajo 0). Sin reembolso ni penalización adicional más allá del nivel perdido — es pura erosión, no una orden ni una acción de la fuerza.
 
+**F6 — Siege (compromiso multi-tick contra la fortificación ajena):** `siege` (fuerzas, from/to/count) compromete `count` unidades desde `from` — mismo cupo simultáneo que `attack_region`/`move_units` en fase 4, sin combate — contra una región hostil `to` con fortificación > 0 y sin asedio activo previo (un asedio por región, sin apilar). Las unidades comprometidas salen de `from` y quedan fuera de juego (sin producir, sin defender, sin poder actuar) mientras el asedio dura; ese es el costo real, no un recurso nuevo. Se declara una sola vez — no consume orden en los ticks siguientes. Estado persistente nuevo en `/world/sieges/<region>.yml`: `attacker`, `defender`, `from`, `units`, `ticks_elapsed`.
+
+Cada tick, en fase 7 (después del upkeep de unidades y de fortificación, mismo saldo real neteado): la fuerza atacante paga `economy.siege_upkeep` (esencia plana, valor inicial 3, calibración empírica como F3/F5) por cada asedio activo que sostiene. Si no alcanza el saldo, ese asedio termina de inmediato ese tick — sin erosión parcial, sin gracia. Si se paga, `ticks_elapsed` incrementa; cuando `ticks_elapsed` es múltiplo de `economy.siege_erosion_interval` (valor inicial 2, calibración empírica), la fortificación de `to` baja 1 nivel (piso 0). Un asedio recién declarado este tick no procesa upkeep ni erosión en su propio tick de declaración — solo a partir de la fase 7 del tick siguiente.
+
+Un asedio termina (sin acción explícita de cancelación en v1) cuando: (a) el upkeep no se puede pagar: fin inmediato; (b) la fortificación de `to` llega a 0 por la erosión: fin, ya no queda nada que erosionar; (c) `to` cambia de dueño por cualquier vía (el propio atacante la toma por `attack_region`, o un tercero la captura): fin, el asedio ya no tiene objeto — sitiar nunca captura por sí mismo, solo ablanda el muro. Al terminar por cualquier causa, las unidades comprometidas regresan a `from` si el atacante todavía la posee; si no, se pierden. Sin reembolso de esencia ya pagada.
+
+Sin aislamiento especial (decisión explícita): un asedio no bloquea nada en `to` — el defensor puede reforzar o fortificar con normalidad, y cualquier otra fuerza o el aventurero puede seguir actuando ahí. El costo del asedio es la exposición estratégica de tener unidades atadas en otro lugar, no un candado artificial.
+
 ## Decisiones congeladas — cierres finales (vacíos 1–4)
 
 **Política NPC (determinista, máx 1 orden/tick aunque el cap sea mayor — diferencia de volumen visible en traza):**
@@ -163,7 +172,8 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
                      # umbrales de reputación, tabla de triggers, presupuesto tokens,
                      # caps de órdenes por tick, cap de comercio aventurero/tick,
                      # costos recruit/fortify, cap F de fortificación,
-                     # upkeep_divisor y fortify_upkeep (F5)
+                     # upkeep_divisor y fortify_upkeep (F5),
+                     # siege_erosion_interval y siege_upkeep (F6)
   tick.txt           # puntero atómico de tick
   regions/<id>.yml   # dueño, recursos base, unidades presentes, fortificación, botín activo
   forces/<id>.yml    # persona ref, esencia, unidades
@@ -171,6 +181,7 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
   graveyard/         # entidades muertas + títulos; sobrevive el reset de era
   quests/active/<id>.yml          # eligibility, objetivo, reward, stake, deadline, cupo
   quests/resolved/
+  sieges/<region>.yml             # asedio activo contra esa región (F6): attacker, defender, from, units, ticks_elapsed
 /moves/tick-<N>/<force>.yml       # batches consumidos, preservados como traza
 /lore/                            # write-only, LLM, jamás leído por adjudicación
 /chronicle/tick-<N>.md            # resumen mecánico por tick, generado por árbitro

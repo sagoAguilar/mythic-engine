@@ -35,6 +35,8 @@ economy:
     level_3: 6
   fortify_cap: 3
   upkeep_divisor: 5            # essence upkeep per tick: floor(force's total units / this)
+  siege_erosion_interval: 2    # ticks between each -1 fortification level a paid siege inflicts
+  siege_upkeep: 3              # flat essence/tick per active siege; unpaid -> ends immediately
 
 combat:
   tie_favors: defender         # frozen: strict determinism, no seed in combat

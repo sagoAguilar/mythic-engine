@@ -17,6 +17,15 @@ simultaneous commitment (Diplomacy model, docs/intent.md):
   coexists with any garrison, never collides. Killing it requires the
   explicit ``target: adventurer`` attack, staged here for phase 5.
 
+``siege`` (F6, force-only) shares this phase's ``from``/available-units
+bookkeeping but is not a movement or an attack: no F1 duel, no pending
+combat. It commits ``count`` units out of the garrison economy entirely
+(returned only when the siege later ends, in phase 7) against a hostile,
+fortified ``to`` that isn't already under another siege — declared once,
+staged here as ``sieges_started`` for the resolver to fold into the
+persistent ``/world/sieges/`` state after this tick's phase 7 has run
+(a fresh siege never erodes or pays upkeep on its own declare-tick).
+
 Pure function: no input mutation, no I/O, no wall clock; the only
 randomness is the seed chain above. Orders that fail their catalog
 preconditions are reported in ``rejected_orders``, never applied.
@@ -42,14 +51,17 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
       adventurer_moves: {adventurer_id: new position}
       pending_combats:  [{region, parties: [{actor, count, kind, target}]}]
                         parties ordered by the seeded formula, combats by region id
+      sieges_started:   {region_id: {attacker, defender, from, units, ticks_elapsed: 0}}
       rejected_orders:  [{actor, index, reason}] for failed preconditions
     """
     tick = state["tick"] + 1
     regions = state["regions"]
+    existing_sieges = state.get("sieges", {})
 
     unit_changes: dict[str, int] = {}
     owner_changes: dict[str, str] = {}
     adventurer_moves: dict[str, str] = {}
+    sieges_started: dict[str, dict] = {}
     rejected: list[dict] = []
     # region -> actor -> {"count": int, "kind": str, "target": str | None}
     arrivals: dict[str, dict[str, dict]] = {}
@@ -68,6 +80,45 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
         is_adventurer = actor.startswith("adventurer-")
         for index, order in enumerate(batch["orders"]):
             action = order.get("action")
+
+            if action == "siege":
+                if is_adventurer:
+                    reject(actor, index, "siege: adventurer cannot siege (force-only action)")
+                    continue
+                src_id, dst_id, count = order["from"], order["to"], order["count"]
+                src = regions.get(src_id)
+                if src is None or src["owner"] != actor:
+                    reject(actor, index, f"siege: {src_id} is not owned by {actor}")
+                    continue
+                remaining = available.setdefault((actor, src_id), src["units"])
+                if count > remaining:
+                    reject(actor, index,
+                           f"siege: {count} units exceed the {remaining} available in {src_id}")
+                    continue
+                dst = regions.get(dst_id)
+                if dst is None or dst_id not in src["adjacent"]:
+                    reject(actor, index, f"siege: {dst_id} is not adjacent to {src_id}")
+                    continue
+                if dst["owner"] is None or dst["owner"] == actor:
+                    reject(actor, index, f"siege: {dst_id} is not hostile to {actor}")
+                    continue
+                if dst["fortification"] <= 0:
+                    reject(actor, index, f"siege: {dst_id} has no fortification to erode")
+                    continue
+                if dst_id in existing_sieges or dst_id in sieges_started:
+                    reject(actor, index, f"siege: {dst_id} is already under siege")
+                    continue
+                available[(actor, src_id)] = remaining - count
+                charge(src_id, -count)
+                sieges_started[dst_id] = {
+                    "attacker": actor,
+                    "defender": dst["owner"],
+                    "from": src_id,
+                    "units": count,
+                    "ticks_elapsed": 0,
+                }
+                continue
+
             if action not in ("move_units", "attack_region"):
                 continue
 
@@ -175,5 +226,6 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
         "owner_changes": dict(sorted(owner_changes.items())),
         "adventurer_moves": dict(sorted(adventurer_moves.items())),
         "pending_combats": pending_combats,
+        "sieges_started": dict(sorted(sieges_started.items())),
         "rejected_orders": rejected,
     }

@@ -176,6 +176,109 @@ def test_fortify_erosion_tiebreaks_by_region_id_at_the_same_level(state):
     assert delta["fortification_changes"] == {"arm-1-b": -1}
 
 
+def _besiege(working, region_id, attacker, defender, src, units, ticks_elapsed):
+    working["sieges"][region_id] = {
+        "attacker": attacker, "defender": defender,
+        "from": src, "units": units, "ticks_elapsed": ticks_elapsed,
+    }
+
+
+def test_siege_upkeep_paid_progresses_without_erosion(state):
+    # elapsed 0 -> 1, not yet a multiple of siege_erosion_interval (2)
+    working = copy.deepcopy(state)
+    _besiege(working, "ring-2", "force-1", "force-2", "arm-1-a", 2, 0)
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {}
+    assert delta["sieges_ended"] == []
+    assert delta["siege_progress"] == {"ring-2": 1}
+    assert delta["unit_changes"] == {}
+    # base flow (4, see test_phase7_matches_expected_delta) minus siege_upkeep
+    assert delta["essence_changes"]["force-1"] == 4 - CONFIG.economy.siege_upkeep
+
+
+def test_siege_upkeep_paid_erodes_at_the_interval(state):
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["fortification"] = 3
+    _besiege(working, "ring-2", "force-1", "force-2", "arm-1-a", 2, 1)
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {"ring-2": -1}
+    assert delta["sieges_ended"] == []
+    assert delta["siege_progress"] == {"ring-2": 2}
+
+
+def test_siege_upkeep_unpaid_ends_immediately_and_returns_units(state):
+    # force-1 has nothing to pay siege_upkeep with (yields zeroed, no
+    # reserve) - the siege collapses this tick, no partial erosion
+    working = copy.deepcopy(state)
+    working["forces"]["force-1"]["essence"] = 0
+    for rid in ("capital-1", "arm-1-a", "ring-1"):
+        working["regions"][rid]["yield"] = 0
+    _besiege(working, "ring-2", "force-1", "force-2", "arm-1-a", 2, 0)
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["sieges_ended"] == ["ring-2"]
+    assert delta["fortification_changes"] == {}
+    assert delta["siege_progress"] == {}
+    assert delta["unit_changes"] == {"arm-1-a": 2}  # attacker still owns arm-1-a
+    assert delta["essence_changes"]["force-1"] == -1  # base flow only, no siege charge
+
+
+def test_siege_ending_units_are_lost_if_the_origin_changed_hands(state):
+    working = copy.deepcopy(state)
+    working["forces"]["force-1"]["essence"] = 0
+    for rid in ("capital-1", "arm-1-a", "ring-1"):
+        working["regions"][rid]["yield"] = 0
+    working["regions"]["arm-1-a"]["owner"] = "force-3"  # captured mid-tick
+    _besiege(working, "ring-2", "force-1", "force-2", "arm-1-a", 2, 0)
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["sieges_ended"] == ["ring-2"]
+    assert delta["unit_changes"] == {}
+
+
+def test_siege_ends_the_instant_its_target_changes_owner(state):
+    # ring-2 no longer belongs to the stored defender - the siege is moot
+    # and ends before any upkeep is even considered
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["owner"] = "force-3"
+    _besiege(working, "ring-2", "force-1", "force-2", "arm-1-a", 2, 0)
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["sieges_ended"] == ["ring-2"]
+    assert delta["unit_changes"] == {"arm-1-a": 2}
+    assert delta["essence_changes"]["force-1"] == 4  # unaffected - no siege charge at all
+
+
+def test_siege_ends_when_erosion_brings_fortification_to_zero(state):
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["fortification"] = 1
+    _besiege(working, "ring-2", "force-1", "force-2", "arm-1-a", 2, 1)
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {"ring-2": -1}
+    assert delta["sieges_ended"] == ["ring-2"]
+    assert delta["siege_progress"] == {}
+    assert delta["unit_changes"] == {"arm-1-a": 2}
+    # the final tick's upkeep is still charged, even though it ends right after
+    assert delta["essence_changes"]["force-1"] == 4 - CONFIG.economy.siege_upkeep
+
+
+def test_siege_erosion_and_fortify_upkeep_erosion_stack_without_going_below_zero(state):
+    # ring-2 (level 1, owned by force-2) is simultaneously: (a) besieged
+    # by force-3, hitting its erosion interval this tick, and (b) unpaid
+    # by its own owner's fortify upkeep. Both processes want to erode it
+    # by 1 - only one decrement may actually land, never both
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["fortification"] = 1
+    working["forces"]["force-2"]["essence"] = 0
+    for rid in ("arm-2-a", "arm-2-b", "capital-2", "ring-2"):
+        working["regions"][rid]["yield"] = 0
+    working["forces"]["force-3"]["essence"] = 100
+    _besiege(working, "ring-2", "force-3", "force-2", "capital-3", 1, 1)
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    assert delta["fortification_changes"] == {"ring-2": -1}
+    assert delta["sieges_ended"] == ["ring-2"]
+    assert delta["unit_changes"] == {"capital-3": 1}
+    assert delta["essence_changes"]["force-2"] == -1  # fortify upkeep unpaid, no deduction
+    assert delta["essence_changes"]["force-3"] == 5 - CONFIG.economy.siege_upkeep  # still charged
+
+
 def test_moves_are_not_phase7_business(state):
     batch = {
         "actor": "force-1", "tick": 1, "origin": "agent",

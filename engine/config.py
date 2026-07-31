@@ -97,6 +97,8 @@ class Economy:
     fortify_upkeep: FortifyUpkeep
     fortify_cap: int
     upkeep_divisor: int
+    siege_erosion_interval: int
+    siege_upkeep: int
 
 
 @dataclass(frozen=True)

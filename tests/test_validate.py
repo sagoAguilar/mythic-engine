@@ -16,6 +16,7 @@ ACTIONS = [
     "attack_region",
     "recruit",
     "fortify",
+    "siege",
     "accept_quest",
     "spawn_adventurer",
     "claim_loot",
@@ -118,6 +119,7 @@ def _valid_world():
             },
             "resolved": {},
         },
+        "sieges": {},
         "graveyard": [
             {
                 "id": "adventurer-elder",

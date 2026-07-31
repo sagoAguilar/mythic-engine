@@ -32,6 +32,8 @@ era:
       level_3: 6
     fortify_cap: 3
     upkeep_divisor: 5
+    siege_erosion_interval: 2
+    siege_upkeep: 3
     fortify_cost:
       level_1: 5
       level_2: 10
@@ -239,6 +241,7 @@ regions:
     owner: force-2
     units: 1
     yield: 2
+sieges: {}
 supremacy:
   leader: force-2
   streaks:

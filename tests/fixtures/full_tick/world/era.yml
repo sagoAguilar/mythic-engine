@@ -35,6 +35,8 @@ economy:
     level_3: 6
   fortify_cap: 3
   upkeep_divisor: 5
+  siege_erosion_interval: 2
+  siege_upkeep: 3
 
 combat:
   tie_favors: defender         # frozen: strict determinism, no seed in combat

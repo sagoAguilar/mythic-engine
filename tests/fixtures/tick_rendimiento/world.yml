@@ -51,6 +51,8 @@ era:
       level_3: 20
     recruit_cost: 2
     upkeep_divisor: 5
+    siege_erosion_interval: 2
+    siege_upkeep: 3
     yield_capital: 2
     yield_neutral: 1
     yield_ring: 2
@@ -251,6 +253,7 @@ regions:
     owner: force-3
     units: 0
     yield: 2
+sieges: {}
 supremacy:
   leader: null
   streaks:

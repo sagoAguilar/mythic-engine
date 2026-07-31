@@ -22,12 +22,13 @@
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "count": { "type": "integer", "minimum": 1 },
     "order": {
-      "description": "One order in the batch: exactly one of the seven catalog actions below.",
+      "description": "One order in the batch: exactly one of the eight catalog actions below.",
       "oneOf": [
         { "$ref": "#/$defs/move_units" },
         { "$ref": "#/$defs/attack_region" },
         { "$ref": "#/$defs/recruit" },
         { "$ref": "#/$defs/fortify" },
+        { "$ref": "#/$defs/siege" },
         { "$ref": "#/$defs/accept_quest" },
         { "$ref": "#/$defs/spawn_adventurer" },
         { "$ref": "#/$defs/claim_loot" }
@@ -57,6 +58,18 @@
           "const": "adventurer",
           "description": "Declares this attack a hunt against a non-combatant adventurer present in `to`, instead of a territorial assault on its owner."
         }
+      },
+      "required": ["action", "from", "to", "count"],
+      "additionalProperties": false
+    },
+    "siege": {
+      "description": "Force-only: commits count units from `from` to besiege a hostile, fortified `to` (owned by a rival, fortification > 0, not already under another siege) - no F1 duel, the committed units leave `from` and sit idle for as long as the siege runs (F6). Declared once; no reorder needed on later ticks. Each tick the siege survives, its attacker pays `economy.siege_upkeep` flat essence (checked after unit and fortify upkeep, against the force's real balance) - unpaid ends it immediately. Paid ticks accumulate toward `economy.siege_erosion_interval`: every time that many ticks elapse, `to` loses one fortification level. The siege also ends the moment `to`'s fortification hits 0 or `to` changes owner by any means (sieging alone never captures). On any ending, committed units return to `from` if the attacker still owns it, otherwise they're lost - no refund of essence already spent.",
+      "type": "object",
+      "properties": {
+        "action": { "const": "siege" },
+        "from": { "$ref": "#/$defs/region_id" },
+        "to": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" }
       },
       "required": ["action", "from", "to", "count"],
       "additionalProperties": false

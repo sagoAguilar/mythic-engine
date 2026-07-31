@@ -709,16 +709,21 @@ one-directional, never returned.
   drops to 5 on the first skipped tick. Same widening-gap shape as
   every other escalating curve in this session.
 
+**Implemented (2026-07-31):** idea #11 is fully real and live -
+`decree` with `kind: dismiss | surge_recruit` (F7, phase 3, alongside
+recruit/fortify). All three open questions below are resolved.
+
 **Open questions before this is spec-worthy:**
-1. All numbers illustrative (surcharge curve, reset condition - resets
-   after exactly one skipped tick as proposed, not confirmed as a
-   longer cooldown).
-2. Needs new `move.schema.json` entries (force-only) - likely a
-   `decree` action with a `kind: dismiss | surge_recruit` parameter,
-   or two separate actions; not decided.
-3. Interaction with idea #4/#10's upkeep proposals - dismissal only
-   makes sense once *something* costs upkeep (units and/or
-   fortification); sequencing matters if these get built separately.
+1. ~~All numbers illustrative (surcharge curve, reset condition)~~ -
+   resolved and locked: surcharge 5/10/20 capped at the 3rd tier (never
+   doubles past it), reset after exactly one skipped tick, no longer
+   cooldown.
+2. ~~Needs new `move.schema.json` entries~~ - resolved: one `decree`
+   action with a `kind: dismiss | surge_recruit` parameter, matching
+   quest's own type-field pattern.
+3. ~~Interaction with idea #4/#10's upkeep proposals~~ - resolved:
+   built after both, so sequencing was moot; dismissal composes
+   cleanly as the release valve for the upkeep sinks already live.
 
 ### 12. Agent client gap: forces aren't actually told what their actions do
 

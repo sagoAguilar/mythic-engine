@@ -71,6 +71,8 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 | `siege` | fuerzas | from, to, count | unidades ≥ count en from; to adyacente; to hostil con fortificación > 0; to sin asedio activo | unidades comprometidas (fuera de juego, sin combate); crea asedio persistente (F6) |
 | `recruit` | fuerzas | region, count | región propia; esencia ≥ count × costo | −esencia, +unidades |
 | `fortify` | fuerzas | region | región propia; esencia ≥ costo | +1 fortificación, persistente, cap F |
+| `decree` (kind: dismiss) | fuerzas | region, count | región propia; unidades ≥ count en region | −unidades, sin reembolso |
+| `decree` (kind: surge_recruit) | fuerzas | region, count | ídem recruit; esencia ≥ count × costo + recargo (F7) | −esencia (costo + recargo), +2×count unidades |
 | `accept_quest` | según eligibility | quest_id | eligibility, cupo, stake, posición | reclamo; stake cobrado |
 | `spawn_adventurer` | humano | name, origin | sin entidad viva del username; origin spawneable | entidad con baseline |
 | `claim_loot` | aventurero | region | presente en región con botín activo | +botín; botín extinguido |
@@ -135,6 +137,13 @@ Un asedio termina (sin acción explícita de cancelación en v1) cuando: (a) el 
 
 Sin aislamiento especial (decisión explícita): un asedio no bloquea nada en `to` — el defensor puede reforzar o fortificar con normalidad, y cualquier otra fuerza o el aventurero puede seguir actuando ahí. El costo del asedio es la exposición estratégica de tener unidades atadas en otro lugar, no un candado artificial.
 
+**F7 — Decree (categoría de acciones infrecuentes de alto impacto, fase 3):** `decree` (fuerzas, kind: `dismiss` | `surge_recruit`) es la válvula de escape que falta una vez que unidades y fortificación cuestan upkeep (F5/F6) — sin ella una fuerza solo puede acumular, nunca deshacerse de lo que no puede sostener.
+
+- `dismiss` (region, count): reduce en `count` las unidades de una región propia, sin reembolso de esencia — unidireccional, igual que todo otro gasto de esta economía (recruit, fortify, stakes).
+- `surge_recruit` (region, count): mismas precondiciones que `recruit` (región propia, esencia ≥ count × `recruit_cost`), pero entrega `2 × count` unidades — el costo por unidad y el upkeep de las unidades resultantes no cambian, solo el rendimiento de la acción.
+
+El costo real de `surge_recruit` es un **recargo plano por invocarlo**, encima del costo normal de recruit, que escala con uso consecutivo y resetea a base en cuanto pasa un tick sin usarlo ("castiga el spam, perdona la contención"). Curva de 3 niveles igual de forma que `fortify_cost`/`fortify_bonus` (`economy.decree_surge_surcharge`, valores iniciales 5/10/20, calibración empírica como F3): el streak persiste por fuerza (`surge_streak` en `forces/<id>.yml`, nunca visto por el jugador como recurso — es contador interno). Cada tick que la fuerza invoca `surge_recruit` al menos una vez, el streak sube en 1 (tope 3, no sigue duplicando después del tercer uso consecutivo) y el recargo de ESE tick se cobra según el streak resultante — un mismo streak cubre todas las órdenes `surge_recruit` de la misma fuerza en el mismo tick, no se vuelve a escalar dentro del tick. Cualquier tick en que la fuerza no invoque `surge_recruit` resetea su streak a 0, sin excepción ni gracia adicional.
+
 ## Decisiones congeladas — cierres finales (vacíos 1–4)
 
 **Política NPC (determinista, máx 1 orden/tick aunque el cap sea mayor — diferencia de volumen visible en traza):**
@@ -173,10 +182,11 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
                      # caps de órdenes por tick, cap de comercio aventurero/tick,
                      # costos recruit/fortify, cap F de fortificación,
                      # upkeep_divisor y fortify_upkeep (F5),
-                     # siege_erosion_interval y siege_upkeep (F6)
+                     # siege_erosion_interval y siege_upkeep (F6),
+                     # decree_surge_surcharge (F7)
   tick.txt           # puntero atómico de tick
   regions/<id>.yml   # dueño, recursos base, unidades presentes, fortificación, botín activo
-  forces/<id>.yml    # persona ref, esencia, unidades
+  forces/<id>.yml    # persona ref, esencia, unidades, surge_streak (F7)
   forces/adventurer-<handle>.yml  # controller, esencia, reputación, capacidades, quest personal
   graveyard/         # entidades muertas + títulos; sobrevive el reset de era
   quests/active/<id>.yml          # eligibility, objetivo, reward, stake, deadline, cupo

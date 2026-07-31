@@ -22,13 +22,14 @@
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "count": { "type": "integer", "minimum": 1 },
     "order": {
-      "description": "One order in the batch: exactly one of the eight catalog actions below.",
+      "description": "One order in the batch: exactly one of the nine catalog actions below.",
       "oneOf": [
         { "$ref": "#/$defs/move_units" },
         { "$ref": "#/$defs/attack_region" },
         { "$ref": "#/$defs/recruit" },
         { "$ref": "#/$defs/fortify" },
         { "$ref": "#/$defs/siege" },
+        { "$ref": "#/$defs/decree" },
         { "$ref": "#/$defs/accept_quest" },
         { "$ref": "#/$defs/spawn_adventurer" },
         { "$ref": "#/$defs/claim_loot" }
@@ -72,6 +73,18 @@
         "count": { "$ref": "#/$defs/count" }
       },
       "required": ["action", "from", "to", "count"],
+      "additionalProperties": false
+    },
+    "decree": {
+      "description": "Force-only (F7): an infrequent, high-impact action distinct from routine orders. `kind: dismiss` reduces a region's units by `count`, no essence change and no refund - the release valve for upkeep pressure. `kind: surge_recruit` shares recruit's preconditions (own region, essence >= count * economy.recruit_cost) but delivers 2x count units for it - the per-unit cost and the resulting units' upkeep are unaffected. What surge_recruit actually costs extra is a flat `economy.decree_surge_surcharge` on top, keyed to the force's consecutive-tick streak of using it (capped at the 3rd tier, not doubling forever) - any tick without a surge_recruit resets that streak to 0.",
+      "type": "object",
+      "properties": {
+        "action": { "const": "decree" },
+        "kind": { "enum": ["dismiss", "surge_recruit"] },
+        "region": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" }
+      },
+      "required": ["action", "kind", "region", "count"],
       "additionalProperties": false
     },
     "recruit": {

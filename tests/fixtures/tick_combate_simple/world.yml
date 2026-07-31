@@ -48,6 +48,10 @@ era:
     upkeep_divisor: 5
     siege_erosion_interval: 2
     siege_upkeep: 3
+    decree_surge_surcharge:
+      level_1: 5
+      level_2: 10
+      level_3: 20
     fortify_cost:
       level_1: 5
       level_2: 10
@@ -107,16 +111,19 @@ forces:
     essence: 10
     id: force-1
     persona: personas/force-1.md
+    surge_streak: 0
     units: 6
   force-2:
     essence: 10
     id: force-2
     persona: personas/force-2.md
+    surge_streak: 0
     units: 4
   force-3:
     essence: 10
     id: force-3
     persona: personas/force-3.md
+    surge_streak: 0
     units: 3
 graveyard: []
 quests:

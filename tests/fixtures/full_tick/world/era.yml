@@ -37,6 +37,10 @@ economy:
   upkeep_divisor: 5
   siege_erosion_interval: 2
   siege_upkeep: 3
+  decree_surge_surcharge:
+    level_1: 5
+    level_2: 10
+    level_3: 20
 
 combat:
   tie_favors: defender         # frozen: strict determinism, no seed in combat

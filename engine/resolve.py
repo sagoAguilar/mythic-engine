@@ -190,6 +190,8 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         working["regions"][region_id]["units"] += change
     for region_id, change in p3["fortification_changes"].items():
         working["regions"][region_id]["fortification"] += change
+    for force_id, streak in p3["surge_streak_changes"].items():
+        working["forces"][force_id]["surge_streak"] = streak
 
     # phase 4: simultaneous movements and attacks
     p4 = resolve_movement(working, batches, config, seed)

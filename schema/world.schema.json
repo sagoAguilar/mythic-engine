@@ -125,9 +125,13 @@
         "id": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
         "persona": { "type": "string", "minLength": 1 },
         "essence": { "type": "integer", "minimum": 0 },
-        "units": { "type": "integer", "minimum": 0 }
+        "units": { "type": "integer", "minimum": 0 },
+        "surge_streak": {
+          "description": "F7: consecutive ticks (capped internal counter, capped at 3) this force has invoked decree/surge_recruit back to back. 0 when not on a streak.",
+          "type": "integer", "minimum": 0, "maximum": 3
+        }
       },
-      "required": ["id", "persona", "essence", "units"],
+      "required": ["id", "persona", "essence", "units", "surge_streak"],
       "additionalProperties": false
     },
     "adventurer": {
@@ -284,9 +288,10 @@
             "fortify_cap": { "type": "integer", "minimum": 1 },
             "upkeep_divisor": { "type": "integer", "minimum": 1 },
             "siege_erosion_interval": { "type": "integer", "minimum": 1 },
-            "siege_upkeep": { "type": "integer", "minimum": 0 }
+            "siege_upkeep": { "type": "integer", "minimum": 0 },
+            "decree_surge_surcharge": { "$ref": "#/$defs/fortify_level_curve" }
           },
-          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_upkeep", "fortify_cap", "upkeep_divisor", "siege_erosion_interval", "siege_upkeep"],
+          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_upkeep", "fortify_cap", "upkeep_divisor", "siege_erosion_interval", "siege_upkeep", "decree_surge_surcharge"],
           "additionalProperties": false
         },
         "combat": {

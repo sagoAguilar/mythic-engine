@@ -11,6 +11,7 @@ unit_changes:
   capital-3: 1
 fortification_changes:
   capital-2: 1
+surge_streak_changes: {}
 rejected_orders:
   - actor: adventurer-sago
     index: 0

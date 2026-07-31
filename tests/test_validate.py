@@ -17,6 +17,7 @@ ACTIONS = [
     "recruit",
     "fortify",
     "siege",
+    "decree",
     "accept_quest",
     "spawn_adventurer",
     "claim_loot",
@@ -85,6 +86,7 @@ def _valid_world():
                 "persona": f"personas/force-{i}.md",
                 "essence": 0,
                 "units": 0,
+                "surge_streak": 0,
             }
             for i in (1, 2, 3)
         },

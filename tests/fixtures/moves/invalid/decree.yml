@@ -1,0 +1,9 @@
+# invalid: kind must be "dismiss" or "surge_recruit"
+actor: force-2
+tick: 3
+origin: agent
+orders:
+  - action: decree
+    kind: double_units
+    region: capital-2
+    count: 1

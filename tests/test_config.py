@@ -43,6 +43,14 @@ def test_fortify_bonus_is_cumulative_per_level_not_a_flat_multiplier():
     assert cfg.economy.fortify_bonus.at_level(3) == 10
 
 
+def test_decree_surge_surcharge_escalates_and_caps_at_the_third_tier():
+    cfg = load_era_config(ERA_YML)
+    assert cfg.economy.decree_surge_surcharge.at_streak(1) == 5
+    assert cfg.economy.decree_surge_surcharge.at_streak(2) == 10
+    assert cfg.economy.decree_surge_surcharge.at_streak(3) == 20
+    assert cfg.economy.decree_surge_surcharge.at_streak(4) == 20  # never doubles past tier 3
+
+
 def test_fortify_upkeep_escalates_by_level():
     cfg = load_era_config(ERA_YML)
     assert cfg.economy.fortify_upkeep.at_level(0) == 0  # unfortified

@@ -37,6 +37,10 @@ economy:
   upkeep_divisor: 5            # essence upkeep per tick: floor(force's total units / this)
   siege_erosion_interval: 2    # ticks between each -1 fortification level a paid siege inflicts
   siege_upkeep: 3              # flat essence/tick per active siege; unpaid -> ends immediately
+  decree_surge_surcharge:      # flat surcharge for surge_recruit, by consecutive-tick streak (capped at 3)
+    level_1: 5
+    level_2: 10
+    level_3: 20
 
 combat:
   tie_favors: defender         # frozen: strict determinism, no seed in combat

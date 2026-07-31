@@ -36,6 +36,7 @@ def seed_world(config) -> dict:
             "persona": f"personas/force-{i}.md",
             "essence": config.bootstrap.starting_essence,
             "units": config.bootstrap.starting_units_capital,
+            "surge_streak": 0,
         }
         for i in range(1, config.map.arms + 1)
     }

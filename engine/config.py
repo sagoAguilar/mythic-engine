@@ -87,6 +87,23 @@ class FortifyUpkeep:
 
 
 @dataclass(frozen=True)
+class DecreeSurcharge:
+    """Flat essence surcharge for surge_recruit (F7), by consecutive-tick
+    streak - not a flat per-use fee; escalates the longer a force keeps
+    invoking it back to back, capped at the 3rd tier."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_streak(self, streak: int) -> int:
+        """Surcharge for the ``streak``-th consecutive tick of use (1-indexed,
+        capped at the 3rd tier - it never keeps doubling past that)."""
+        level = min(streak, 3)
+        return (self.level_1, self.level_2, self.level_3)[level - 1]
+
+
+@dataclass(frozen=True)
 class Economy:
     yield_neutral: int
     yield_capital: int
@@ -99,6 +116,7 @@ class Economy:
     upkeep_divisor: int
     siege_erosion_interval: int
     siege_upkeep: int
+    decree_surge_surcharge: DecreeSurcharge
 
 
 @dataclass(frozen=True)

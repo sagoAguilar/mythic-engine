@@ -234,16 +234,29 @@ paid/active route (+2/tick, faster, costs essence).
   The `refuge: 25` threshold this ties to is the same number already
   reused as the Guild's Gold-tier gate (idea #8) - doing double duty.
 
+**Implemented (2026-07-31):** trade (F8) is real and live in phase 6,
+alongside `claim_loot`. While implementing it, re-reading
+`docs/intent.md` surfaced a real precondition this write-up hadn't
+called out: reputation thresholds already gate trade/refuge/quests
+("umbrales desbloquean comercio/refugio/encargos" - `comercio ≥ +10`),
+so a trade attempt now also requires the adventurer's reputation with
+that force to already meet `reputation.thresholds.trade` - confirmed
+before building, not assumed. Bootstrapping path: quest completion
+(`quest_damages_force_rivals`) can clear +10 with a rival force in one
+shot, so trade/refuge are reachable, just not the very first rung.
+`adventurer.trade_cap_per_tick` was renamed to `trade_cost` (its old
+name no longer matched a flat action).
+
 **Open questions before this is spec-worthy:**
-1. The exact success percentages per depth tier (50/75/100 above are
-   illustrative, not decided).
-2. This needs a genuinely new action in `move.schema.json`'s closed
-   catalog - unlike the Guild, which reuses `accept_quest` wholesale,
-   nothing like `trade` exists today. Adventurer-only, costs one of
-   their 2 order slots.
+1. ~~The exact success percentages per depth tier~~ - resolved and
+   locked: ring 50 / arm 75 / capital 100.
+2. ~~This needs a genuinely new action in `move.schema.json`'s closed
+   catalog~~ - resolved and implemented: `trade` (adventurer-only,
+   region param only - the force is implicit from who owns it).
 3. Whether refuge, once actually built, should get the same kind of
    depth/positional richness trade just got, or stay simple as
-   originally spec'd (any territory, flat +1/tick, no risk).
+   originally spec'd (any territory, flat +1/tick, no risk) - still
+   open; refuge itself remains unimplemented.
 
 ### 6. Adventurer progression should be felt during play, not just at coronation
 

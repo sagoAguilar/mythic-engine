@@ -292,6 +292,18 @@ chat narration (as already started) before it's ever worth scripting.
 
 ### 8. The Adventurers' Guild — per-force rank ladder + capability rewards
 
+**Implemented (2026-07-31): Bronze/`travel` only** - the first slice of
+the phased plan below, deliberately. Live in `engine/phase9_spawn.py`
+(the standing one-quest-per-force-board replenishment) and
+`engine/phase8_quests.py` (fulfillment + the coin-flip reward). New
+`era.yml` `guild.bronze` block, quest schema's `type` enum gained
+`travel`. Everything else in this section - `hold`, Silver/Gold/
+Platinum, capabilities (learn/equip/switch), narrative-choice quests,
+and both open "real findings" below (the multi-force capability-unlock
+question, Platinum's double-gate rarity) - remains exactly as
+described: designed, not built. Next slice per the phasing plan is
+Silver, or `hold` alongside Bronze - not yet chosen.
+
 **Supersedes idea #1.** Started as "give the adventurer a small always-
 available quest," grew through discussion into a full guild system once
 it became clear a single `personal_quest` reframe (the option this doc
@@ -529,19 +541,21 @@ yet:
   in the sandbox and tune whatever feels off before any of this goes
   near `docs/intent.md`.
 
-**Open questions before this is spec-worthy:**
-1. The new `docs/intent.md` "Fuentes" table row this needs, and the
-   real schema surface this now implies for the adventurer entity -
-   which quests completed where (rank is derived from this, still
-   needs storing), which (tier, force) capabilities are learned, and
-   which one is currently equipped per slot. Meaningfully more than the
-   flat `capabilities: []` array can hold today.
+**Open questions before this is spec-worthy** (still open for
+everything past Bronze/`travel` - see "Implemented" note above):
+1. The new `docs/intent.md` "Fuentes" table row this needs ~~, and~~ -
+   resolved and added for the Guild generally. The real schema surface
+   for Silver+ remains open: which quests completed where (rank is
+   derived from this, still needs storing), which (tier, force)
+   capabilities are learned, and which one is currently equipped per
+   slot. Meaningfully more than the flat `capabilities: []` array can
+   hold today.
 2. Narrative-choice quests need real design, not just a compatible
    mechanism - how many junctures, how choices map to pass/fail, how
    much is fixed-in-advance vs. seeded-per-attempt.
-3. `max_claimants` for guild quests - exclusive (`1`, seeded-collision
-   winner takes it, confirmed as the intended model) vs. `open` - which
-   one, and does it vary by tier.
+3. ~~`max_claimants` for guild quests~~ - resolved for `travel`:
+   exclusive (`1`), same seeded-collision model as everything else.
+   Whether it ever varies by tier is moot until a tier needs `open`.
 
 ### 9. The Strategist — force-hireable deterministic intel subscription
 

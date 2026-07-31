@@ -170,7 +170,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-        "type": { "enum": ["raid", "blockade", "attrition", "dethrone"] },
+        "type": { "enum": ["raid", "blockade", "attrition", "dethrone", "travel"] },
         "tier": { "enum": ["minor", "major"] },
         "eligibility": { "enum": ["forces", "adventurer", "any"] },
         "reward": { "type": "integer", "minimum": 0 },
@@ -408,6 +408,25 @@
           "required": ["max_active_major", "max_active_minor", "window_ticks", "blockade_n_ticks", "attrition_delta", "rewards", "stakes", "triggers"],
           "additionalProperties": false
         },
+        "guild": {
+          "description": "F9: the Adventurers' Guild - Bronze/travel only so far, a deliberately partial first slice of a larger, phased system (docs/playtest-notes.md idea #8).",
+          "type": "object",
+          "properties": {
+            "bronze": {
+              "type": "object",
+              "properties": {
+                "travel_deadline": { "type": "integer", "minimum": 1 },
+                "essence_hit": { "type": "integer", "minimum": 0 },
+                "essence_miss": { "type": "integer", "minimum": 0 },
+                "reputation_hit": { "type": "integer", "minimum": 0 }
+              },
+              "required": ["travel_deadline", "essence_hit", "essence_miss", "reputation_hit"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["bronze"],
+          "additionalProperties": false
+        },
         "map": {
           "type": "object",
           "properties": {
@@ -436,7 +455,7 @@
           "additionalProperties": false
         }
       },
-      "required": ["era", "coronation", "orders", "economy", "combat", "adventurer", "reputation", "quests", "map", "budget", "bootstrap"],
+      "required": ["era", "coronation", "orders", "economy", "combat", "adventurer", "reputation", "quests", "guild", "map", "budget", "bootstrap"],
       "additionalProperties": false
     }
   }

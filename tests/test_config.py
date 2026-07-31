@@ -59,6 +59,15 @@ def test_trade_success_pct_by_depth_tier():
     assert cfg.adventurer.trade_success_pct.for_tier("capital") == 100
 
 
+def test_guild_bronze_config():
+    cfg = load_era_config(ERA_YML)
+    assert cfg.guild.bronze.travel_deadline == 3
+    assert cfg.guild.bronze.essence_hit == 1
+    assert cfg.guild.bronze.essence_miss == 2
+    assert cfg.guild.bronze.reputation_hit == 1
+    assert cfg.guild.bronze.essence_miss > cfg.guild.bronze.essence_hit  # never a worse outcome
+
+
 def test_fortify_upkeep_escalates_by_level():
     cfg = load_era_config(ERA_YML)
     assert cfg.economy.fortify_upkeep.at_level(0) == 0  # unfortified

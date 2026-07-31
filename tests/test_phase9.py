@@ -59,6 +59,13 @@ def _quiet(state):
     return working
 
 
+def _non_guild(quests_spawned):
+    # guild travel quests spawn every tick regardless of everything else
+    # (F9) - most of these tests are specifically about vengeance/rubber
+    # band behavior, so filter the standing guild pool out first
+    return {qid: q for qid, q in quests_spawned.items() if q["type"] != "travel"}
+
+
 def test_minor_band_without_major(state):
     # drop the leader to exactly 6/12 = 0.5: > 0.45, not > 0.55
     working = _quiet(state)
@@ -94,12 +101,14 @@ def test_dethrone_preferred_once_leader_has_a_streak(state):
 
 
 def test_tied_leadership_spawns_no_rubber_band(state):
-    # 5/5/2 split: no strict unique leader
+    # 5/5/2 split: no strict unique leader - the guild still spawns its
+    # standing travel quests regardless, since it isn't leader-dependent
     working = _quiet(state)
     for rid in ("ring-1", "ring-3"):
         working["regions"][rid]["owner"] = "force-1"
     delta = resolve_quest_spawn(working, [], CONFIG, SEED)
-    assert delta["quests_spawned"] == {}
+    assert _non_guild(delta["quests_spawned"]) == {}
+    assert {q["type"] for q in delta["quests_spawned"].values()} == {"travel"}
 
 
 def test_full_caps_spawn_nothing(state):
@@ -119,7 +128,7 @@ def test_full_caps_spawn_nothing(state):
                           "params": {"force": "force-2", "units_at_spawn": 12, "delta": 4}},
     }
     delta = resolve_quest_spawn(working, [], CONFIG, SEED)
-    assert delta["quests_spawned"] == {}  # vengeance also respects the cap
+    assert _non_guild(delta["quests_spawned"]) == {}  # vengeance also respects the cap
 
 
 def test_killerless_death_spawns_no_vengeance(state):
@@ -128,8 +137,57 @@ def test_killerless_death_spawns_no_vengeance(state):
         {"id": "adventurer-sago", "region": "ring-2", "killer": None}
     ]
     delta = resolve_quest_spawn(working, [], CONFIG, SEED)
-    targets = {q["params"]["force"] for q in delta["quests_spawned"].values()}
+    targets = {q["params"]["force"] for q in _non_guild(delta["quests_spawned"]).values()}
     assert targets == {"force-2"}  # only rubber-band quests, all at the leader
+
+
+def test_guild_spawns_exactly_one_travel_quest_per_force(state):
+    delta = resolve_quest_spawn(state, [], CONFIG, SEED)
+    travels = [q for q in delta["quests_spawned"].values() if q["type"] == "travel"]
+    assert sorted(q["params"]["force"] for q in travels) == ["force-1", "force-2", "force-3"]
+
+
+def test_guild_travel_target_never_the_boards_own_capital(state):
+    delta = resolve_quest_spawn(state, [], CONFIG, SEED)
+    for quest in delta["quests_spawned"].values():
+        if quest["type"] != "travel":
+            continue
+        force_id = quest["params"]["force"]
+        capital_id = f"capital-{force_id.split('-', 1)[1]}"
+        assert quest["params"]["region"] != capital_id
+
+
+def test_guild_skips_a_force_that_already_has_an_active_travel_quest(state):
+    working = copy.deepcopy(state)
+    working["quests"]["active"]["travel-0-1"] = {
+        "id": "travel-0-1", "type": "travel", "tier": "minor", "eligibility": "adventurer",
+        "reward": 1, "stake": 1, "deadline": 5, "max_claimants": 1,
+        "claimed_by": [], "progress": {}, "params": {"region": "ring-1", "force": "force-1"},
+    }
+    delta = resolve_quest_spawn(working, [], CONFIG, SEED)
+    travels = [q for q in delta["quests_spawned"].values() if q["type"] == "travel"]
+    assert sorted(q["params"]["force"] for q in travels) == ["force-2", "force-3"]
+
+
+def test_guild_travel_quests_never_count_against_the_rubber_bands_minor_cap(state):
+    # force-2 is the strict leader here and would normally get both raid
+    # and blockade minors (no vengeance this time, so both slots are free
+    # for the rubber band); pre-filling the minor cap with guild quests
+    # alone must not suppress them
+    working = _quiet(state)
+    working["regions"]["arm-3-b"]["owner"] = None  # a real blockade candidate exists
+    working["regions"]["arm-3-b"]["units"] = 0
+    for i, force_id in enumerate(("force-1", "force-2", "force-3"), start=1):
+        working["quests"]["active"][f"travel-0-{i}"] = {
+            "id": f"travel-0-{i}", "type": "travel", "tier": "minor",
+            "eligibility": "adventurer", "reward": 1, "stake": 1, "deadline": 5,
+            "max_claimants": 1, "claimed_by": [], "progress": {},
+            "params": {"region": "ring-1", "force": force_id},
+        }
+    delta = resolve_quest_spawn(working, [], CONFIG, SEED)
+    types = {q["type"] for q in _non_guild(delta["quests_spawned"]).values()}
+    assert "raid" in types
+    assert "blockade" in types
 
 
 def test_moves_are_not_phase9_business(state):

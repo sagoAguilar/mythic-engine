@@ -94,6 +94,12 @@ quests:
     supremacy_major: 0.55      # leader fraction spawning major quests
     adventurer_death_vengeance: raid   # spawns raid against the killer
 
+guild:
+  bronze:
+    essence_hit: 1
+    essence_miss: 2
+    reputation_hit: 1
+    travel_deadline: 3
 map:
   arms: 3
   regions_per_arm: 3           # capital + 2 neutrals

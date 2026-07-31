@@ -55,6 +55,12 @@ era:
     number: 1
     seed: 20260706
     tick_cap: 100
+  guild:
+    bronze:
+      essence_hit: 1
+      essence_miss: 2
+      reputation_hit: 1
+      travel_deadline: 3
   map:
     arms: 3
     regions_per_arm: 3

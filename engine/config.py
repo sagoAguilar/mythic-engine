@@ -214,6 +214,19 @@ class Quests:
 
 
 @dataclass(frozen=True)
+class GuildBronze:
+    travel_deadline: int
+    essence_hit: int
+    essence_miss: int
+    reputation_hit: int
+
+
+@dataclass(frozen=True)
+class Guild:
+    bronze: GuildBronze
+
+
+@dataclass(frozen=True)
 class Map:
     arms: int
     regions_per_arm: int
@@ -241,6 +254,7 @@ class EraConfig:
     adventurer: Adventurer
     reputation: Reputation
     quests: Quests
+    guild: Guild
     map: Map
     budget: Budget
     bootstrap: Bootstrap

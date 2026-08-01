@@ -292,17 +292,19 @@ chat narration (as already started) before it's ever worth scripting.
 
 ### 8. The Adventurers' Guild — per-force rank ladder + capability rewards
 
-**Implemented (2026-07-31): Bronze/`travel` only** - the first slice of
-the phased plan below, deliberately. Live in `engine/phase9_spawn.py`
-(the standing one-quest-per-force-board replenishment) and
-`engine/phase8_quests.py` (fulfillment + the coin-flip reward). New
-`era.yml` `guild.bronze` block, quest schema's `type` enum gained
-`travel`. Everything else in this section - `hold`, Silver/Gold/
-Platinum, capabilities (learn/equip/switch), narrative-choice quests,
-and both open "real findings" below (the multi-force capability-unlock
-question, Platinum's double-gate rarity) - remains exactly as
-described: designed, not built. Next slice per the phasing plan is
-Silver, or `hold` alongside Bronze - not yet chosen.
+**Implemented (2026-07-31): Bronze fully - both `travel` and `hold`** -
+the first slice of the phased plan below, deliberately. Live in
+`engine/phase9_spawn.py` (the standing one-quest-per-type-per-force-
+board replenishment, `hold` tracked independently of `travel`) and
+`engine/phase8_quests.py` (`travel`'s position check, `hold` reusing
+`blockade`'s consecutive-occupation streak verbatim, and the shared
+coin-flip reward for both). New `era.yml` `guild.bronze` block, quest
+schema's `type` enum gained `travel` and `hold`. Everything else in
+this section - Silver/Gold/Platinum, capabilities (learn/equip/switch),
+narrative-choice quests, and both open "real findings" below (the
+multi-force capability-unlock question, Platinum's double-gate rarity)
+- remains exactly as described: designed, not built. Next slice per
+the phasing plan is Silver.
 
 **Supersedes idea #1.** Started as "give the adventurer a small always-
 available quest," grew through discussion into a full guild system once

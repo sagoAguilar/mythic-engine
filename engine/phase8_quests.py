@@ -15,22 +15,28 @@ Two passes, strictly ordered:
      travel    - the claimant (always exactly one - max_claimants: 1) is
                  currently AT params.region, no route/history check (F9,
                  Guild Bronze, docs/playtest-notes.md idea #8)
+     hold      - identical consecutive-occupation tracking as blockade
+                 (same progress/streak mechanics, params.n_ticks), just a
+                 different quest type for Guild sourcing/reward purposes
+                 (F9) - touches no force state whatsoever, same F4-style
+                 coexistence principle that makes the adventurer safe to
+                 stand anywhere
    Deadlines are inclusive: fulfillable while tick <= deadline, expired
    after. Unclaimed quests never fulfill - they wait or expire.
 
-   On success, every quest type except ``travel`` pays every claimant
-   the quest's flat ``reward``, and an adventurer claimant also takes
-   the reputation hit for damaging params.force (quest_damages_force
+   On success, every quest type except ``travel``/``hold`` pays every
+   claimant the quest's flat ``reward``, and an adventurer claimant also
+   takes the reputation hit for damaging params.force (quest_damages_force
    with it, quest_damages_force_rivals with its rivals, clamped to the
-   era scale). ``travel`` pays its own way instead: a seeded coin-flip
-   (``sha256(seed:tick:adventurer_id:quest_id)`` parity) decides essence
-   AND reputation together — a hit grants both
+   era scale). The Guild's two Bronze types pay their own way instead: a
+   seeded coin-flip (``sha256(seed:tick:adventurer_id:quest_id)`` parity)
+   decides essence AND reputation together — a hit grants both
    ``guild.bronze.reputation_hit`` reputation (with params.force) and
    ``guild.bronze.essence_hit`` essence; a miss grants no reputation but
    a bigger ``guild.bronze.essence_miss`` consolation essence, so every
-   completion is net-positive either way. ``travel`` never touches
-   quest_damages_force at all - it isn't erosion against a force, it's
-   the Guild's own reward.
+   completion is net-positive either way. Neither ``travel`` nor ``hold``
+   ever touches quest_damages_force - it isn't erosion against a force,
+   it's the Guild's own reward.
 
    On failure the stake is already gone (charged at accept); an
    adventurer claimant sitting at zero essence dies - permadeath,
@@ -110,7 +116,7 @@ def resolve_quests(state: dict, moves: list[dict], config, seed: int) -> dict:
                     state["regions"][quest["params"]["region"]]["owner"]
                     != quest["params"]["force"]
                 )
-            elif quest["type"] == "blockade":
+            elif quest["type"] in ("blockade", "hold"):
                 streaks = {}
                 for claimant in claimants:
                     streak = quest["progress"].get(claimant, 0)
@@ -131,7 +137,7 @@ def resolve_quests(state: dict, moves: list[dict], config, seed: int) -> dict:
         if fulfilled:
             quests_resolved[quest_id] = "success"
             quest_progress.pop(quest_id, None)
-            if quest["type"] == "travel":
+            if quest["type"] in ("travel", "hold"):
                 claimant = claimants[0]
                 digest = hashlib.sha256(
                     f"{seed}:{tick}:{claimant}:{quest_id}".encode("utf-8")

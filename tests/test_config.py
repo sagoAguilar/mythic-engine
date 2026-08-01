@@ -62,6 +62,7 @@ def test_trade_success_pct_by_depth_tier():
 def test_guild_bronze_config():
     cfg = load_era_config(ERA_YML)
     assert cfg.guild.bronze.travel_deadline == 3
+    assert cfg.guild.bronze.hold_n_ticks == 2
     assert cfg.guild.bronze.essence_hit == 1
     assert cfg.guild.bronze.essence_miss == 2
     assert cfg.guild.bronze.reputation_hit == 1

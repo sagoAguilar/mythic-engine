@@ -2,16 +2,19 @@
 # Vengeance first: raid against the killer force-1, X = its least-
 #   garrisoned region (arm-1-a), occupying minor slot 1 of 2.
 # Guild next (F9, independent of the rubber band and its composition
-#   cap): one travel quest per force's board, seeded target
-#   (sha256(seed:1:guild:force_id)), deadline 1+3=4.
+#   cap): one travel + one hold quest per force's board, each with its
+#   own seeded target (sha256(seed:1:guild:force_id) for travel,
+#   sha256(seed:1:guild:hold:force_id) for hold - deliberately
+#   different digests). travel deadline 1+3=4; hold deadline reuses
+#   window_ticks, 1+8=9.
 # Rubber band (leader force-2 at 7/12 = 0.583 > 0.45 and > 0.55):
 #   minor fill order raid -> blockade: the raid takes slot 2
 #   (X = arm-1-b, lexical winner of the 1-unit tie); blockade is then
 #   skipped at the composition cap.
 #   major slot: leader streak is 0 -> attrition, units_at_spawn = 12.
 quests_spawned:
-  attrition-1-6:
-    id: attrition-1-6
+  attrition-1-9:
+    id: attrition-1-9
     type: attrition
     tier: major
     eligibility: forces
@@ -25,6 +28,51 @@ quests_spawned:
       force: force-2
       units_at_spawn: 12
       delta: 4
+  hold-1-5:
+    id: hold-1-5
+    type: hold
+    tier: minor
+    eligibility: adventurer
+    reward: 1
+    stake: 1
+    deadline: 9
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      force: force-1
+      region: arm-1-a
+      n_ticks: 2
+  hold-1-6:
+    id: hold-1-6
+    type: hold
+    tier: minor
+    eligibility: adventurer
+    reward: 1
+    stake: 1
+    deadline: 9
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      force: force-2
+      region: arm-3-a
+      n_ticks: 2
+  hold-1-7:
+    id: hold-1-7
+    type: hold
+    tier: minor
+    eligibility: adventurer
+    reward: 1
+    stake: 1
+    deadline: 9
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      force: force-3
+      region: arm-2-a
+      n_ticks: 2
   raid-1-1:
     id: raid-1-1
     type: raid
@@ -39,8 +87,8 @@ quests_spawned:
     params:
       region: arm-1-a
       force: force-1
-  raid-1-5:
-    id: raid-1-5
+  raid-1-8:
+    id: raid-1-8
     type: raid
     tier: minor
     eligibility: any

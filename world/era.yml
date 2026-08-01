@@ -94,10 +94,11 @@ quests:
     supremacy_major: 0.55      # leader fraction spawning major quests
     adventurer_death_vengeance: raid   # spawns raid against the killer
 
-guild:                         # Adventurers' Guild (F9) - Bronze/travel only so far,
+guild:                         # Adventurers' Guild (F9) - Bronze/travel + hold only so far,
                                 # PROVISIONAL: first slice of a larger, phased system
   bronze:
     travel_deadline: 3         # ticks from spawn to reach the target region
+    hold_n_ticks: 2            # consecutive occupation ticks required; deadline reuses quests.window_ticks
     essence_hit: 1             # coin-flip hit: reputation gained too
     essence_miss: 2            # coin-flip miss: no reputation, bigger consolation essence
     reputation_hit: 1          # +0 reputation on a miss (not a tunable - the definition of "miss")

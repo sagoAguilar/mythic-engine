@@ -1,9 +1,10 @@
-"""Cross-phase integration for the Guild's Bronze/travel quest (F9): a
-real multi-tick engine.resolve() playthrough, not just the phase-8/9
-unit tests - this is what proves the standing-pool spawn (phase 9) and
-the coin-flip resolution (phase 8) actually compose correctly through
-the resolver, across several ticks, the way test_siege_lifecycle.py and
-test_decree_lifecycle.py already do for their own features.
+"""Cross-phase integration for the Guild's Bronze quests, travel and
+hold (F9): real multi-tick engine.resolve() playthroughs, not just the
+phase-8/9 unit tests - this is what proves the standing-pool spawn
+(phase 9) and the coin-flip resolution (phase 8) actually compose
+correctly through the resolver, across several ticks, the way
+test_siege_lifecycle.py and test_decree_lifecycle.py already do for
+their own features.
 """
 
 import shutil
@@ -73,3 +74,54 @@ def test_bronze_travel_quest_spawns_is_accepted_and_completes(tmp_path):
     assert quest_id not in state["quests"]["active"]
     # coin-flip landed either way, but never a net loss versus the stake
     assert state["adventurers"]["adventurer-sago"]["essence"] >= 5 - 1
+
+
+def test_bronze_hold_quest_spawns_is_accepted_and_completes(tmp_path):
+    root = tmp_path / "repo"
+    shutil.copytree(FULL_TICK, root)
+
+    _quiet_forces(root, 1)
+    _dump(root / "moves" / "tick-1" / "adventurer-sago.yml", {
+        "actor": "adventurer-sago", "tick": 1, "origin": "human", "orders": [],
+    })
+    state = resolve(root, root / "moves" / "tick-1", seed=20260706)
+
+    holds = {
+        qid: q for qid, q in state["quests"]["active"].items() if q["type"] == "hold"
+    }
+    assert len(holds) == 3
+    assert {q["params"]["force"] for q in holds.values()} == {
+        "force-1", "force-2", "force-3",
+    }
+    # force-3's board quest targets arm-2-a, reachable from sago's arm-2-b
+    # via capital-2 in 2 hops; occupying it ticks 3 and 4 completes the
+    # n_ticks=2 streak on tick 4
+    quest_id, quest = next(
+        (qid, q) for qid, q in holds.items() if q["params"]["force"] == "force-3"
+    )
+    assert quest["params"]["region"] == "arm-2-a"
+    assert quest["params"]["n_ticks"] == 2
+
+    plan = {
+        2: ("capital-2", [{"action": "accept_quest", "quest_id": quest_id}]),
+        3: ("arm-2-a", []),
+        4: ("arm-2-a", []),
+    }
+    for tick, (dest, extra_orders) in plan.items():
+        _quiet_forces(root, tick)
+        moves_dir = root / "moves" / f"tick-{tick}"
+        position = state["adventurers"]["adventurer-sago"]["position"]
+        orders = list(extra_orders)
+        if dest != position:
+            orders.append({"action": "move_units", "from": position, "to": dest, "count": 1})
+        _dump(moves_dir / "adventurer-sago.yml", {
+            "actor": "adventurer-sago", "tick": tick, "origin": "human", "orders": orders,
+        })
+        state = resolve(root, moves_dir, seed=20260706)
+
+    assert quest_id in state["quests"]["resolved"]
+    assert state["quests"]["resolved"][quest_id]["status"] == "success"
+    assert quest_id not in state["quests"]["active"]
+    assert state["adventurers"]["adventurer-sago"]["essence"] >= 5 - 1
+    # hold never touches force-3's own state at all
+    assert state["forces"]["force-3"]["units"] > 0

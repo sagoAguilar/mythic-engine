@@ -60,10 +60,10 @@ def _quiet(state):
 
 
 def _non_guild(quests_spawned):
-    # guild travel quests spawn every tick regardless of everything else
-    # (F9) - most of these tests are specifically about vengeance/rubber
-    # band behavior, so filter the standing guild pool out first
-    return {qid: q for qid, q in quests_spawned.items() if q["type"] != "travel"}
+    # guild quests (travel, hold) spawn every tick regardless of everything
+    # else (F9) - most of these tests are specifically about vengeance/
+    # rubber band behavior, so filter the standing guild pool out first
+    return {qid: q for qid, q in quests_spawned.items() if q["type"] not in ("travel", "hold")}
 
 
 def test_minor_band_without_major(state):
@@ -108,7 +108,7 @@ def test_tied_leadership_spawns_no_rubber_band(state):
         working["regions"][rid]["owner"] = "force-1"
     delta = resolve_quest_spawn(working, [], CONFIG, SEED)
     assert _non_guild(delta["quests_spawned"]) == {}
-    assert {q["type"] for q in delta["quests_spawned"].values()} == {"travel"}
+    assert {q["type"] for q in delta["quests_spawned"].values()} == {"travel", "hold"}
 
 
 def test_full_caps_spawn_nothing(state):
@@ -167,6 +167,56 @@ def test_guild_skips_a_force_that_already_has_an_active_travel_quest(state):
     delta = resolve_quest_spawn(working, [], CONFIG, SEED)
     travels = [q for q in delta["quests_spawned"].values() if q["type"] == "travel"]
     assert sorted(q["params"]["force"] for q in travels) == ["force-2", "force-3"]
+
+
+def test_guild_spawns_exactly_one_hold_quest_per_force(state):
+    delta = resolve_quest_spawn(state, [], CONFIG, SEED)
+    holds = [q for q in delta["quests_spawned"].values() if q["type"] == "hold"]
+    assert sorted(q["params"]["force"] for q in holds) == ["force-1", "force-2", "force-3"]
+    for quest in holds:
+        assert quest["params"]["n_ticks"] == CONFIG.guild.bronze.hold_n_ticks
+        assert quest["deadline"] == state["tick"] + 1 + CONFIG.quests.window_ticks
+
+
+def test_guild_hold_target_never_the_boards_own_capital(state):
+    delta = resolve_quest_spawn(state, [], CONFIG, SEED)
+    for quest in delta["quests_spawned"].values():
+        if quest["type"] != "hold":
+            continue
+        force_id = quest["params"]["force"]
+        capital_id = f"capital-{force_id.split('-', 1)[1]}"
+        assert quest["params"]["region"] != capital_id
+
+
+def test_guild_hold_and_travel_targets_are_independent(state):
+    # both use seeded picks over the same candidate pool, but with
+    # deliberately different hash inputs - they need not (and, for at
+    # least one force here, don't) land on the same region
+    delta = resolve_quest_spawn(state, [], CONFIG, SEED)
+    by_type_and_force = {
+        (q["type"], q["params"]["force"]): q["params"]["region"]
+        for q in delta["quests_spawned"].values() if q["type"] in ("travel", "hold")
+    }
+    assert any(
+        by_type_and_force[("travel", f)] != by_type_and_force[("hold", f)]
+        for f in ("force-1", "force-2", "force-3")
+    )
+
+
+def test_guild_skips_a_force_that_already_has_an_active_hold_quest(state):
+    working = copy.deepcopy(state)
+    working["quests"]["active"]["hold-0-1"] = {
+        "id": "hold-0-1", "type": "hold", "tier": "minor", "eligibility": "adventurer",
+        "reward": 1, "stake": 1, "deadline": 5, "max_claimants": 1,
+        "claimed_by": [], "progress": {},
+        "params": {"region": "ring-1", "force": "force-1", "n_ticks": 2},
+    }
+    delta = resolve_quest_spawn(working, [], CONFIG, SEED)
+    holds = [q for q in delta["quests_spawned"].values() if q["type"] == "hold"]
+    assert sorted(q["params"]["force"] for q in holds) == ["force-2", "force-3"]
+    # force-1's travel quest is untouched by its hold quest already existing
+    travels = [q for q in delta["quests_spawned"].values() if q["type"] == "travel"]
+    assert sorted(q["params"]["force"] for q in travels) == ["force-1", "force-2", "force-3"]
 
 
 def test_guild_travel_quests_never_count_against_the_rubber_bands_minor_cap(state):

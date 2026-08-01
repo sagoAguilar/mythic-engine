@@ -170,7 +170,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-        "type": { "enum": ["raid", "blockade", "attrition", "dethrone", "travel"] },
+        "type": { "enum": ["raid", "blockade", "attrition", "dethrone", "travel", "hold"] },
         "tier": { "enum": ["minor", "major"] },
         "eligibility": { "enum": ["forces", "adventurer", "any"] },
         "reward": { "type": "integer", "minimum": 0 },
@@ -409,18 +409,19 @@
           "additionalProperties": false
         },
         "guild": {
-          "description": "F9: the Adventurers' Guild - Bronze/travel only so far, a deliberately partial first slice of a larger, phased system (docs/playtest-notes.md idea #8).",
+          "description": "F9: the Adventurers' Guild - Bronze/travel + hold only so far, a deliberately partial first slice of a larger, phased system (docs/playtest-notes.md idea #8).",
           "type": "object",
           "properties": {
             "bronze": {
               "type": "object",
               "properties": {
                 "travel_deadline": { "type": "integer", "minimum": 1 },
+                "hold_n_ticks": { "type": "integer", "minimum": 1 },
                 "essence_hit": { "type": "integer", "minimum": 0 },
                 "essence_miss": { "type": "integer", "minimum": 0 },
                 "reputation_hit": { "type": "integer", "minimum": 0 }
               },
-              "required": ["travel_deadline", "essence_hit", "essence_miss", "reputation_hit"],
+              "required": ["travel_deadline", "hold_n_ticks", "essence_hit", "essence_miss", "reputation_hit"],
               "additionalProperties": false
             }
           },

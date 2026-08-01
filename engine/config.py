@@ -216,6 +216,7 @@ class Quests:
 @dataclass(frozen=True)
 class GuildBronze:
     travel_deadline: int
+    hold_n_ticks: int
     essence_hit: int
     essence_miss: int
     reputation_hit: int

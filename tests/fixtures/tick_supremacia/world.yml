@@ -60,6 +60,7 @@ era:
       essence_miss: 2
       reputation_hit: 1
       travel_deadline: 3
+      hold_n_ticks: 2
   map:
     arms: 3
     regions_per_arm: 3

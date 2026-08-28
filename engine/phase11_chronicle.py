@@ -146,6 +146,12 @@ def _adventurer_section(state: dict, events: dict) -> list[str]:
             tokens.append(f"move:{events['adventurer_moves'][adventurer_id]}")
         if adventurer_id in events["loot_claims"]:
             tokens.append(f"botín:+{events['loot_claims'][adventurer_id]}")
+        for trade in events["trade_results"]:
+            if trade["actor"] != adventurer_id:
+                continue
+            tokens.append(
+                f"trade:{'+' if trade['success'] else 'fail'}@{trade['force']}"
+            )
         eventos = "; ".join(tokens) if tokens else "-"
         lines.append(
             f"| {adventurer_id} | {adventurer['position']} | {adventurer['essence']} "

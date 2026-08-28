@@ -6,10 +6,12 @@ next). The seed never touches combat: party order was fixed by phase 4's
 seeded formula, and F1 itself is strict determinism.
 
 F1 (frozen): attacker power = attacking units; defender power =
-defending units + fortification x fortify_bonus. Attacker wins strictly
+defending units + the cumulative fortify_bonus at the region's current
+level (escalating per level, not a flat multiplier - see
+``config.economy.fortify_bonus.at_level``). Attacker wins strictly
 above defender power, taking the region with the difference as
 survivors and annihilating the defender; otherwise the attacker is
-annihilated and the defender loses max(0, attacker - fort x bonus).
+annihilated and the defender loses max(0, attacker - that same bonus).
 Ties favor the defender.
 
 F2 incumbency ladder: the standing garrison is the incumbent; each
@@ -37,13 +39,14 @@ Pure function: no input mutation, no I/O, no wall clock.
 import math
 
 
-def _f1(attacker_units: int, defender_units: int, fort: int, bonus: int):
-    """One F1 resolution. Returns (attacker_won, attacker_survivors,
-    defender_survivors)."""
-    defender_power = defender_units + fort * bonus
+def _f1(attacker_units: int, defender_units: int, fort_bonus: int):
+    """One F1 resolution. ``fort_bonus`` is the defender's already-resolved
+    cumulative bonus at its current fortification level (0 if unfortified).
+    Returns (attacker_won, attacker_survivors, defender_survivors)."""
+    defender_power = defender_units + fort_bonus
     if attacker_units > defender_power:
         return True, attacker_units - defender_power, 0
-    loss = max(0, attacker_units - fort * bonus)
+    loss = max(0, attacker_units - fort_bonus)
     return False, 0, defender_units - loss
 
 
@@ -121,15 +124,16 @@ def resolve_combat(state: dict, moves: list, config, seed: int) -> dict:
                 incumbent_units += count  # own garrison: merge, no combat
                 continue
 
+            fort_bonus = config.economy.fortify_bonus.at_level(fort)
             won, attacker_survivors, defender_survivors = _f1(
-                count, incumbent_units, fort, config.economy.fortify_bonus
+                count, incumbent_units, fort_bonus
             )
             rounds.append({
                 "attacker": actor,
                 "attacker_units": count,
                 "defender": incumbent_owner,
                 "defender_units": incumbent_units,
-                "defender_power": incumbent_units + fort * config.economy.fortify_bonus,
+                "defender_power": incumbent_units + fort_bonus,
                 "winner": actor if won else incumbent_owner,
                 "attacker_survivors": attacker_survivors,
                 "defender_survivors": defender_survivors,

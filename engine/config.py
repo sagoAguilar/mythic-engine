@@ -40,14 +40,83 @@ class Orders:
 
 
 @dataclass(frozen=True)
+class FortifyCost:
+    """Essence cost to advance a region's fortification by one level (F5-adjacent,
+    escalating: reaching level 3 costs strictly more than level 1)."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_level(self, level: int) -> int:
+        """Cost to advance FROM ``level`` to ``level + 1`` (0-indexed)."""
+        return (self.level_1, self.level_2, self.level_3)[level]
+
+
+@dataclass(frozen=True)
+class FortifyBonus:
+    """Cumulative defense bonus a region's fortification grants, by level -
+    not a flat per-level multiplier; each level is its own committed value."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_level(self, level: int) -> int:
+        """Cumulative bonus AT ``level`` (0 for an unfortified region)."""
+        if level <= 0:
+            return 0
+        return (self.level_1, self.level_2, self.level_3)[level - 1]
+
+
+@dataclass(frozen=True)
+class FortifyUpkeep:
+    """Essence a fortified region costs its owner per tick, by level - unpaid
+    upkeep erodes that region's fortification by one level instead of
+    letting essence go negative (F5-adjacent, same escalating shape)."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_level(self, level: int) -> int:
+        """Upkeep owed AT ``level`` (0 for an unfortified region)."""
+        if level <= 0:
+            return 0
+        return (self.level_1, self.level_2, self.level_3)[level - 1]
+
+
+@dataclass(frozen=True)
+class DecreeSurcharge:
+    """Flat essence surcharge for surge_recruit (F7), by consecutive-tick
+    streak - not a flat per-use fee; escalates the longer a force keeps
+    invoking it back to back, capped at the 3rd tier."""
+
+    level_1: int
+    level_2: int
+    level_3: int
+
+    def at_streak(self, streak: int) -> int:
+        """Surcharge for the ``streak``-th consecutive tick of use (1-indexed,
+        capped at the 3rd tier - it never keeps doubling past that)."""
+        level = min(streak, 3)
+        return (self.level_1, self.level_2, self.level_3)[level - 1]
+
+
+@dataclass(frozen=True)
 class Economy:
     yield_neutral: int
     yield_capital: int
     yield_ring: int
     recruit_cost: int
-    fortify_cost: int
-    fortify_bonus: int
+    fortify_cost: FortifyCost
+    fortify_bonus: FortifyBonus
+    fortify_upkeep: FortifyUpkeep
     fortify_cap: int
+    upkeep_divisor: int
+    siege_erosion_interval: int
+    siege_upkeep: int
+    decree_surge_surcharge: DecreeSurcharge
 
 
 @dataclass(frozen=True)
@@ -62,9 +131,23 @@ class PersonalQuest:
 
 
 @dataclass(frozen=True)
+class TradeSuccessPct:
+    """Seeded trade success chance (F8), by the region's structural depth
+    tier - ring is the riskiest, capital is guaranteed."""
+
+    ring: int
+    arm: int
+    capital: int
+
+    def for_tier(self, tier: str) -> int:
+        return {"ring": self.ring, "arm": self.arm, "capital": self.capital}[tier]
+
+
+@dataclass(frozen=True)
 class Adventurer:
     baseline_essence: int
-    trade_cap_per_tick: int
+    trade_cost: int
+    trade_success_pct: TradeSuccessPct
     loot_burn_fraction: float
     loot_dissipation_ticks: int
     kill_order_cost: int
@@ -131,6 +214,20 @@ class Quests:
 
 
 @dataclass(frozen=True)
+class GuildBronze:
+    travel_deadline: int
+    hold_n_ticks: int
+    essence_hit: int
+    essence_miss: int
+    reputation_hit: int
+
+
+@dataclass(frozen=True)
+class Guild:
+    bronze: GuildBronze
+
+
+@dataclass(frozen=True)
 class Map:
     arms: int
     regions_per_arm: int
@@ -158,6 +255,7 @@ class EraConfig:
     adventurer: Adventurer
     reputation: Reputation
     quests: Quests
+    guild: Guild
     map: Map
     budget: Budget
     bootstrap: Bootstrap

@@ -39,7 +39,11 @@ era:
     personal_quest:
       target: era
       type: survive
-    trade_cap_per_tick: 3
+    trade_cost: 3
+    trade_success_pct:
+      ring: 50
+      arm: 75
+      capital: 100
   bootstrap:
     starting_essence: 10
     starting_units_capital: 3
@@ -51,9 +55,26 @@ era:
     k_ticks: 10
     supremacy_threshold: 0.45
   economy:
-    fortify_bonus: 2
+    fortify_bonus:
+      level_1: 2
+      level_2: 5
+      level_3: 10
+    fortify_upkeep:
+      level_1: 1
+      level_2: 3
+      level_3: 6
     fortify_cap: 3
-    fortify_cost: 5
+    upkeep_divisor: 5
+    siege_erosion_interval: 2
+    siege_upkeep: 3
+    decree_surge_surcharge:
+      level_1: 5
+      level_2: 10
+      level_3: 20
+    fortify_cost:
+      level_1: 5
+      level_2: 10
+      level_3: 20
     recruit_cost: 2
     yield_capital: 2
     yield_neutral: 1
@@ -63,6 +84,13 @@ era:
     number: 1
     seed: 20260706
     tick_cap: 100
+  guild:
+    bronze:
+      essence_hit: 1
+      essence_miss: 2
+      reputation_hit: 1
+      travel_deadline: 3
+      hold_n_ticks: 2
   map:
     arms: 3
     regions_per_arm: 3
@@ -109,16 +137,19 @@ forces:
     essence: 10
     id: force-1
     persona: personas/force-1.md
+    surge_streak: 0
     units: 6
   force-2:
     essence: 10
     id: force-2
     persona: personas/force-2.md
+    surge_streak: 0
     units: 7
   force-3:
     essence: 10
     id: force-3
     persona: personas/force-3.md
+    surge_streak: 0
     units: 4
 graveyard: []
 quests:
@@ -255,6 +286,7 @@ regions:
     owner: null
     units: 0
     yield: 2
+sieges: {}
 supremacy:
   leader: null
   streaks:

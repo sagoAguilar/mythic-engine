@@ -59,6 +59,7 @@ combats:
     defender_units: 1
     winner: force-1
 loot_claims: {}
+trade_results: []
 pending_combats:
 - parties:
   - actor: force-2

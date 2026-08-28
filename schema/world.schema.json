@@ -47,6 +47,12 @@
       "required": ["active", "resolved"],
       "additionalProperties": false
     },
+    "sieges": {
+      "description": "Active sieges (F6), keyed by the besieged region. Declared once in phase 4, progressed/ended in phase 7 - see fortify_level_curve-adjacent economy.siege_erosion_interval and economy.siege_upkeep.",
+      "type": "object",
+      "patternProperties": { "^[a-z][a-z0-9-]*$": { "$ref": "#/$defs/siege" } },
+      "additionalProperties": false
+    },
     "graveyard": {
       "type": "array",
       "items": { "$ref": "#/$defs/graveyard_entry" }
@@ -66,10 +72,21 @@
       "additionalProperties": false
     }
   },
-  "required": ["era", "tick", "combats_last_tick", "regions", "forces", "adventurers", "quests", "graveyard", "supremacy"],
+  "required": ["era", "tick", "combats_last_tick", "regions", "forces", "adventurers", "quests", "sieges", "graveyard", "supremacy"],
   "additionalProperties": false,
   "$defs": {
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "fortify_level_curve": {
+      "description": "A per-level value (escalating, not a flat per-level multiplier) for exactly the 3 fortification levels F3 declares.",
+      "type": "object",
+      "properties": {
+        "level_1": { "type": "integer", "minimum": 1 },
+        "level_2": { "type": "integer", "minimum": 1 },
+        "level_3": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["level_1", "level_2", "level_3"],
+      "additionalProperties": false
+    },
     "region": {
       "type": "object",
       "properties": {
@@ -108,9 +125,13 @@
         "id": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
         "persona": { "type": "string", "minLength": 1 },
         "essence": { "type": "integer", "minimum": 0 },
-        "units": { "type": "integer", "minimum": 0 }
+        "units": { "type": "integer", "minimum": 0 },
+        "surge_streak": {
+          "description": "F7: consecutive ticks (capped internal counter, capped at 3) this force has invoked decree/surge_recruit back to back. 0 when not on a streak.",
+          "type": "integer", "minimum": 0, "maximum": 3
+        }
       },
-      "required": ["id", "persona", "essence", "units"],
+      "required": ["id", "persona", "essence", "units", "surge_streak"],
       "additionalProperties": false
     },
     "adventurer": {
@@ -149,7 +170,7 @@
       "type": "object",
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-        "type": { "enum": ["raid", "blockade", "attrition", "dethrone"] },
+        "type": { "enum": ["raid", "blockade", "attrition", "dethrone", "travel", "hold"] },
         "tier": { "enum": ["minor", "major"] },
         "eligibility": { "enum": ["forces", "adventurer", "any"] },
         "reward": { "type": "integer", "minimum": 0 },
@@ -189,6 +210,19 @@
         "resolved_tick": { "type": "integer", "minimum": 0 }
       },
       "required": ["id", "type", "tier", "eligibility", "reward", "stake", "deadline", "max_claimants", "claimed_by", "progress", "params"],
+      "additionalProperties": false
+    },
+    "siege": {
+      "description": "F6: an in-progress siege against the region this record is keyed by (the besieged region itself, not stored redundantly here).",
+      "type": "object",
+      "properties": {
+        "attacker": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
+        "defender": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
+        "from": { "$ref": "#/$defs/region_id" },
+        "units": { "type": "integer", "minimum": 1 },
+        "ticks_elapsed": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["attacker", "defender", "from", "units", "ticks_elapsed"],
       "additionalProperties": false
     },
     "graveyard_entry": {
@@ -248,11 +282,16 @@
             "yield_capital": { "type": "integer", "minimum": 0 },
             "yield_ring": { "type": "integer", "minimum": 0 },
             "recruit_cost": { "type": "integer", "minimum": 1 },
-            "fortify_cost": { "type": "integer", "minimum": 1 },
-            "fortify_bonus": { "type": "integer", "minimum": 1 },
-            "fortify_cap": { "type": "integer", "minimum": 1 }
+            "fortify_cost": { "$ref": "#/$defs/fortify_level_curve" },
+            "fortify_bonus": { "$ref": "#/$defs/fortify_level_curve" },
+            "fortify_upkeep": { "$ref": "#/$defs/fortify_level_curve" },
+            "fortify_cap": { "type": "integer", "minimum": 1 },
+            "upkeep_divisor": { "type": "integer", "minimum": 1 },
+            "siege_erosion_interval": { "type": "integer", "minimum": 1 },
+            "siege_upkeep": { "type": "integer", "minimum": 0 },
+            "decree_surge_surcharge": { "$ref": "#/$defs/fortify_level_curve" }
           },
-          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_cap"],
+          "required": ["yield_neutral", "yield_capital", "yield_ring", "recruit_cost", "fortify_cost", "fortify_bonus", "fortify_upkeep", "fortify_cap", "upkeep_divisor", "siege_erosion_interval", "siege_upkeep", "decree_surge_surcharge"],
           "additionalProperties": false
         },
         "combat": {
@@ -267,7 +306,17 @@
           "type": "object",
           "properties": {
             "baseline_essence": { "type": "integer", "minimum": 0 },
-            "trade_cap_per_tick": { "type": "integer", "minimum": 0 },
+            "trade_cost": { "type": "integer", "minimum": 0 },
+            "trade_success_pct": {
+              "type": "object",
+              "properties": {
+                "ring": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "arm": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "capital": { "type": "integer", "minimum": 0, "maximum": 100 }
+              },
+              "required": ["ring", "arm", "capital"],
+              "additionalProperties": false
+            },
             "loot_burn_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
             "loot_dissipation_ticks": { "type": "integer", "minimum": 1 },
             "kill_order_cost": { "type": "integer", "minimum": 1 },
@@ -281,7 +330,7 @@
               "additionalProperties": false
             }
           },
-          "required": ["baseline_essence", "trade_cap_per_tick", "loot_burn_fraction", "loot_dissipation_ticks", "kill_order_cost", "personal_quest"],
+          "required": ["baseline_essence", "trade_cost", "trade_success_pct", "loot_burn_fraction", "loot_dissipation_ticks", "kill_order_cost", "personal_quest"],
           "additionalProperties": false
         },
         "reputation": {
@@ -359,6 +408,26 @@
           "required": ["max_active_major", "max_active_minor", "window_ticks", "blockade_n_ticks", "attrition_delta", "rewards", "stakes", "triggers"],
           "additionalProperties": false
         },
+        "guild": {
+          "description": "F9: the Adventurers' Guild - Bronze/travel + hold only so far, a deliberately partial first slice of a larger, phased system (docs/playtest-notes.md idea #8).",
+          "type": "object",
+          "properties": {
+            "bronze": {
+              "type": "object",
+              "properties": {
+                "travel_deadline": { "type": "integer", "minimum": 1 },
+                "hold_n_ticks": { "type": "integer", "minimum": 1 },
+                "essence_hit": { "type": "integer", "minimum": 0 },
+                "essence_miss": { "type": "integer", "minimum": 0 },
+                "reputation_hit": { "type": "integer", "minimum": 0 }
+              },
+              "required": ["travel_deadline", "hold_n_ticks", "essence_hit", "essence_miss", "reputation_hit"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["bronze"],
+          "additionalProperties": false
+        },
         "map": {
           "type": "object",
           "properties": {
@@ -387,7 +456,7 @@
           "additionalProperties": false
         }
       },
-      "required": ["era", "coronation", "orders", "economy", "combat", "adventurer", "reputation", "quests", "map", "budget", "bootstrap"],
+      "required": ["era", "coronation", "orders", "economy", "combat", "adventurer", "reputation", "quests", "guild", "map", "budget", "bootstrap"],
       "additionalProperties": false
     }
   }

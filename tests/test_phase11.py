@@ -57,7 +57,7 @@ def _empty_events():
         "batches": [], "substitutions": [], "rejected_orders": [],
         "pending_combats": [], "combats": [], "yields": {},
         "quests_spawned": {}, "quests_resolved": {},
-        "adventurer_moves": {}, "loot_claims": {},
+        "adventurer_moves": {}, "loot_claims": {}, "trade_results": [],
         "adventurer_spawned": [], "adventurer_deaths": [],
         "supremacy": {"supremacy": {"leader": None,
                                     "streaks": {"force-1": 0, "force-2": 0, "force-3": 0}},

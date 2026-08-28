@@ -3,7 +3,7 @@
 # same-tick orders.
 essence_changes:
   force-1: -10
-  force-2: -5
+  force-2: -20   # capital-2 was at level 2 -> reaching level 3 costs fortify_cost.level_3
   force-3: -2
 unit_changes:
   arm-1-a: 2
@@ -11,6 +11,7 @@ unit_changes:
   capital-3: 1
 fortification_changes:
   capital-2: 1
+surge_streak_changes: {}
 rejected_orders:
   - actor: adventurer-sago
     index: 0

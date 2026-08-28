@@ -1,0 +1,9 @@
+# valid: force commits 2 units from ring-2 to besiege a hostile region
+actor: force-2
+tick: 3
+origin: agent
+orders:
+  - action: siege
+    from: ring-2
+    to: ring-1
+    count: 2

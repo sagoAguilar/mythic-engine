@@ -1,0 +1,13 @@
+# valid: a dismiss and a surge_recruit in the same batch
+actor: force-2
+tick: 3
+origin: agent
+orders:
+  - action: decree
+    kind: dismiss
+    region: capital-2
+    count: 1
+  - action: decree
+    kind: surge_recruit
+    region: capital-2
+    count: 2

@@ -21,16 +21,37 @@ economy:
   yield_capital: 2
   yield_ring: 2
   recruit_cost: 2              # essence per unit
-  fortify_cost: 5
-  fortify_bonus: 2             # defense power per fortification level
+  fortify_cost:
+    level_1: 5
+    level_2: 10
+    level_3: 20
+  fortify_bonus:
+    level_1: 2
+    level_2: 5
+    level_3: 10
+  fortify_upkeep:
+    level_1: 1
+    level_2: 3
+    level_3: 6
   fortify_cap: 3
+  upkeep_divisor: 5
+  siege_erosion_interval: 2
+  siege_upkeep: 3
+  decree_surge_surcharge:
+    level_1: 5
+    level_2: 10
+    level_3: 20
 
 combat:
   tie_favors: defender         # frozen: strict determinism, no seed in combat
 
 adventurer:
   baseline_essence: 5
-  trade_cap_per_tick: 3
+  trade_cost: 3
+  trade_success_pct:
+    ring: 50
+    arm: 75
+    capital: 100
   loot_burn_fraction: 0.5      # fraction of essence burned on death
   loot_dissipation_ticks: 5    # M: ticks before regional loot dissipates
   kill_order_cost: 1           # orders consumed by target: adventurer declaration
@@ -73,6 +94,13 @@ quests:
     supremacy_major: 0.55      # leader fraction spawning major quests
     adventurer_death_vengeance: raid   # spawns raid against the killer
 
+guild:
+  bronze:
+    essence_hit: 1
+    essence_miss: 2
+    reputation_hit: 1
+    travel_deadline: 3
+    hold_n_ticks: 2
 map:
   arms: 3
   regions_per_arm: 3           # capital + 2 neutrals

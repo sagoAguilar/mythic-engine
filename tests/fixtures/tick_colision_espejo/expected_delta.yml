@@ -36,6 +36,7 @@ pending_combats:
         count: 2
         kind: move
         target: null
+sieges_started: {}
 rejected_orders:
   - actor: force-3
     index: 1

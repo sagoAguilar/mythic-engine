@@ -12,14 +12,35 @@ Two passes, strictly ordered:
                  (summed over its regions; the cached total is not trusted)
      dethrone  - supremacy streak of params.force is back to 0 (phase 10's
                  last written value)
+     travel    - the claimant (always exactly one - max_claimants: 1) is
+                 currently AT params.region, no route/history check (F9,
+                 Guild Bronze, docs/playtest-notes.md idea #8)
+     hold      - identical consecutive-occupation tracking as blockade
+                 (same progress/streak mechanics, params.n_ticks), just a
+                 different quest type for Guild sourcing/reward purposes
+                 (F9) - touches no force state whatsoever, same F4-style
+                 coexistence principle that makes the adventurer safe to
+                 stand anywhere
    Deadlines are inclusive: fulfillable while tick <= deadline, expired
-   after. Unclaimed quests never fulfill - they wait or expire. On
-   success every claimant collects the quest's reward; an adventurer
-   claimant also takes the reputation hit for damaging params.force
-   (quest_damages_force with it, quest_damages_force_rivals with its
-   rivals, clamped to the era scale). On failure the stake is already
-   gone (charged at accept); an adventurer claimant sitting at zero
-   essence dies - permadeath, graveyard, no deposit to loot.
+   after. Unclaimed quests never fulfill - they wait or expire.
+
+   On success, every quest type except ``travel``/``hold`` pays every
+   claimant the quest's flat ``reward``, and an adventurer claimant also
+   takes the reputation hit for damaging params.force (quest_damages_force
+   with it, quest_damages_force_rivals with its rivals, clamped to the
+   era scale). The Guild's two Bronze types pay their own way instead: a
+   seeded coin-flip (``sha256(seed:tick:adventurer_id:quest_id)`` parity)
+   decides essence AND reputation together — a hit grants both
+   ``guild.bronze.reputation_hit`` reputation (with params.force) and
+   ``guild.bronze.essence_hit`` essence; a miss grants no reputation but
+   a bigger ``guild.bronze.essence_miss`` consolation essence, so every
+   completion is net-positive either way. Neither ``travel`` nor ``hold``
+   ever touches quest_damages_force - it isn't erosion against a force,
+   it's the Guild's own reward.
+
+   On failure the stake is already gone (charged at accept); an
+   adventurer claimant sitting at zero essence dies - permadeath,
+   graveyard, no deposit to loot.
 
 2. **Accept** this tick's accept_quest orders - after verification, so a
    same-tick engineered fulfillment can never be instantly rewarded.
@@ -95,7 +116,7 @@ def resolve_quests(state: dict, moves: list[dict], config, seed: int) -> dict:
                     state["regions"][quest["params"]["region"]]["owner"]
                     != quest["params"]["force"]
                 )
-            elif quest["type"] == "blockade":
+            elif quest["type"] in ("blockade", "hold"):
                 streaks = {}
                 for claimant in claimants:
                     streak = quest["progress"].get(claimant, 0)
@@ -110,28 +131,49 @@ def resolve_quests(state: dict, moves: list[dict], config, seed: int) -> dict:
                 )
             elif quest["type"] == "dethrone":
                 fulfilled = state["supremacy"]["streaks"].get(quest["params"]["force"], 0) == 0
+            elif quest["type"] == "travel":
+                fulfilled = _occupies(state, claimants[0], quest["params"]["region"])
 
         if fulfilled:
             quests_resolved[quest_id] = "success"
             quest_progress.pop(quest_id, None)
-            damaged = quest["params"].get("force")
-            for claimant in claimants:
-                add_essence(claimant, quest["reward"])
-                if claimant.startswith("adventurer-") and damaged is not None:
+            if quest["type"] in ("travel", "hold"):
+                claimant = claimants[0]
+                digest = hashlib.sha256(
+                    f"{seed}:{tick}:{claimant}:{quest_id}".encode("utf-8")
+                ).hexdigest()
+                hit = int(digest, 16) % 2 == 0
+                bronze = config.guild.bronze
+                add_essence(claimant, bronze.essence_hit if hit else bronze.essence_miss)
+                if hit:
+                    force_id = quest["params"]["force"]
                     reputation = state["adventurers"][claimant]["reputation"]
                     pending = reputation_changes.setdefault(claimant, {})
-                    for force_id in sorted(state["forces"]):
-                        delta = (
-                            config.reputation.deltas.quest_damages_force
-                            if force_id == damaged
-                            else config.reputation.deltas.quest_damages_force_rivals
-                        )
-                        current = reputation[force_id] + pending.get(force_id, 0)
-                        clamped = max(
-                            config.reputation.scale_min,
-                            min(config.reputation.scale_max, current + delta),
-                        )
-                        pending[force_id] = pending.get(force_id, 0) + clamped - current
+                    current = reputation[force_id] + pending.get(force_id, 0)
+                    clamped = max(
+                        config.reputation.scale_min,
+                        min(config.reputation.scale_max, current + bronze.reputation_hit),
+                    )
+                    pending[force_id] = pending.get(force_id, 0) + clamped - current
+            else:
+                damaged = quest["params"].get("force")
+                for claimant in claimants:
+                    add_essence(claimant, quest["reward"])
+                    if claimant.startswith("adventurer-") and damaged is not None:
+                        reputation = state["adventurers"][claimant]["reputation"]
+                        pending = reputation_changes.setdefault(claimant, {})
+                        for force_id in sorted(state["forces"]):
+                            delta = (
+                                config.reputation.deltas.quest_damages_force
+                                if force_id == damaged
+                                else config.reputation.deltas.quest_damages_force_rivals
+                            )
+                            current = reputation[force_id] + pending.get(force_id, 0)
+                            clamped = max(
+                                config.reputation.scale_min,
+                                min(config.reputation.scale_max, current + delta),
+                            )
+                            pending[force_id] = pending.get(force_id, 0) + clamped - current
         elif tick > quest["deadline"]:
             quests_resolved[quest_id] = "failure"
             quest_progress.pop(quest_id, None)

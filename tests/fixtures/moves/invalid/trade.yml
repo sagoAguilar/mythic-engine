@@ -1,0 +1,8 @@
+# invalid: unknown parameter `count` - trade takes only region
+actor: adventurer-sago
+tick: 6
+origin: human
+orders:
+  - action: trade
+    region: capital-2
+    count: 3

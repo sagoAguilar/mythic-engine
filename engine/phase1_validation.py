@@ -51,10 +51,10 @@ def _npc_force_order(state: dict, force_id: str, config) -> dict | None:
     capital_id = "capital-" + force_id.removeprefix("force-")
     capital = regions.get(capital_id)
     if (
-        force["essence"] >= config.economy.fortify_cost
-        and capital is not None
+        capital is not None
         and capital["owner"] == force_id
         and capital["fortification"] < config.economy.fortify_cap
+        and force["essence"] >= config.economy.fortify_cost.at_level(capital["fortification"])
     ):
         return {"action": "fortify", "region": capital_id}
 

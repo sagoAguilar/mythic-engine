@@ -43,7 +43,7 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 | Loot al morir | Fracción fija se quema (`era.yml`); resto depositado en la región de la muerte como botín neutral reclamable por M ticks, luego se disipa. El asesino cobra solo si controla la posición. Muerte sin asesino: mismo mecanismo sin beneficiario |
 | Crecimiento | Recursos (reglas comunes), reputación por fuerza (contador determinista; umbrales desbloquean comercio/refugio/encargos), capacidades por logro (desbloqueos discretos, cada uno una acción nueva en el schema). Stats RPG continuos: rechazado. Techo de poder duro: nunca decide eras por sí solo |
 | Victoria propia | No compite por dominancia. Quest personal declarada en `era.yml`: acumular X, completar cadena de misiones, sobrevivir la era, o variante de bando: "que X corone" |
-| Influencia sobre el desenlace | Canales legítimos: comercio por reputación (con cap de volumen por tick en `era.yml`), ejecución de quests rubber-band menores, obstrucción posicional, botín póstumo. Kingmaking permitido dentro de caps |
+| Influencia sobre el desenlace | Canales legítimos: comercio por reputación (acción plana `trade`, costo fijo `adventurer.trade_cost`, no un cap de volumen escalable — F8), ejecución de quests rubber-band menores, obstrucción posicional, botín póstumo. Kingmaking permitido dentro de caps |
 | Techo verificable | Replay contrafactual post-era: movimientos humanos sustituidos por política NPC. Si el ganador cambia, el humano decidió la era → caps se aprietan. Métrica: delta de resultado, no impresión |
 | Legado | Al coronar una fuerza, si la reputación del aventurero supera umbral: título diegético en chronicle/graveyard, persistente trans-era, valor mecánico cero. Pago en memoria del mundo, no en poder |
 
@@ -51,7 +51,7 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 
 | Rama | Decisión |
 |---|---|
-| Fuentes | (1) Motor rubber-band por umbrales de dominancia; (2) eventos de mundo por triggers de estado (tabla en `era.yml`); (3) fuerzas como emisoras: v2, requiere catálogo cerrado. El humano nunca crea misiones |
+| Fuentes | (1) Motor rubber-band por umbrales de dominancia; (2) eventos de mundo por triggers de estado (tabla en `era.yml`); (3) fuerzas como emisoras: v2, requiere catálogo cerrado; (4) el Gremio de Aventureros — tablero determinista por capital, `eligibility: adventurer`, no confundir con "encargos" (v2): el Gremio autora las misiones, las fuerzas nunca las emiten (F9). El humano nunca crea misiones |
 | Elegibilidad | Campo `eligibility`: `forces` / `adventurer` / `any`. Rubber-band menores: `any`; mayores: `forces` — el aventurero como erosión, no demolición. Cupo: `max_claimants: 1` u `open` |
 | Toma | Movimiento `accept_quest` validado contra eligibility, estado del tomador, cupo. Colisión de reclamos exclusivos: fórmula con seed. Stake cobrado al aceptar |
 | Notificación | Capa 1: sección de quests en `/chronicle/tick-N.md`. Capa 2 (v1): GitHub Issue por quest elegible `adventurer`/`any`, cerrado al resolverse. El Issue es notificación, no interfaz: tomar la quest sigue siendo PR. Capa 3 (v2): bot Telegram |
@@ -68,11 +68,15 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 |---|---|---|---|---|
 | `move_units` | ambos | from, to, count | unidades ≥ count en from; to adyacente; to propia o neutral | transferencia |
 | `attack_region` | fuerzas | from, to, count | ídem; to hostil | combate en fase 5 |
+| `siege` | fuerzas | from, to, count | unidades ≥ count en from; to adyacente; to hostil con fortificación > 0; to sin asedio activo | unidades comprometidas (fuera de juego, sin combate); crea asedio persistente (F6) |
 | `recruit` | fuerzas | region, count | región propia; esencia ≥ count × costo | −esencia, +unidades |
 | `fortify` | fuerzas | region | región propia; esencia ≥ costo | +1 fortificación, persistente, cap F |
+| `decree` (kind: dismiss) | fuerzas | region, count | región propia; unidades ≥ count en region | −unidades, sin reembolso |
+| `decree` (kind: surge_recruit) | fuerzas | region, count | ídem recruit; esencia ≥ count × costo + recargo (F7) | −esencia (costo + recargo), +2×count unidades |
 | `accept_quest` | según eligibility | quest_id | eligibility, cupo, stake, posición | reclamo; stake cobrado |
 | `spawn_adventurer` | humano | name, origin | sin entidad viva del username; origin spawneable | entidad con baseline |
 | `claim_loot` | aventurero | region | presente en región con botín activo | +botín; botín extinguido |
+| `trade` | aventurero | region | presente en region; region propiedad de una fuerza; reputación ≥ umbral comercio; esencia ≥ costo | tirada con seed por tier de profundidad (F8); éxito: −esencia aventurero, +esencia fuerza, +reputación; fallo: nada (solo la orden) |
 
 `move_units` / `attack_region` separados: intención explícita — el harness lee agresión declarada, no deducida.
 
@@ -101,9 +105,9 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 ## Decisiones congeladas — fórmulas de resolución (punto 2)
 
 **F1 — Combate determinista de aniquilación:**
-- `poder_atacante = unidades_atacantes`; `poder_defensor = unidades_defensoras + F × bonus_fort`
+- `poder_atacante = unidades_atacantes`; `poder_defensor = unidades_defensoras + bonus_fort(F)`, donde `bonus_fort(F)` es el bono acumulado declarado para el nivel `F` — escalonado por nivel, no un multiplicador plano (valores en F3)
 - Atacante > defensor: toma la región con `atacante − defensor` supervivientes; defensor eliminado
-- Atacante ≤ defensor: atacante eliminado; defensor pierde `max(0, atacante − F × bonus_fort)`
+- Atacante ≤ defensor: atacante eliminado; defensor pierde `max(0, atacante − bonus_fort(F))`
 - Cada combate es aniquilación del perdedor. Traza auto-explicable; seed no toca combate; eras rápidas = más runs por presupuesto
 
 **F2 — Colisión multi-parte:**
@@ -113,14 +117,41 @@ El workflow de resolución determinista. Todo lo demás degrada con gracia; si l
 
 **F3 — Valores iniciales (`era.yml`, calibración empírica declarada como knowledge gap):**
 - Yield: 1 esencia/región/tick; capitales: 2
-- Recruit: 2 esencia/unidad. Fortify: 5 esencia, bonus_fort 2, cap F=3
-- Baseline aventurero: 5 esencia. Cap comercio: 3 esencia/tick
+- Recruit: 2 esencia/unidad. Fortify (escalonado por nivel, no plano): costo 5/10/20 esencia (niveles 1/2/3), `bonus_fort(F)` acumulado 2/5/10, cap F=3
+- Baseline aventurero: 5 esencia. Costo de `trade`: 3 esencia por intento (acción plana, no cap de volumen — F8)
 - Rubber-band: >45% regiones. K coronación: 10 ticks. Cap de era: 100 ticks
 
 **F4 — Aventurero en combate:**
 - No bloquea captura: coexiste como no-combatiente; la región cambia de dueño sin combatirlo
 - Muere solo por declaración explícita: `attack_region` con `target: adventurer` — cuesta una orden del batch
 - Matarlo paga reputación negativa con las demás fuerzas (parámetro en `era.yml`). Caza posible, explícita en traza, con precio diplomático
+
+**F5 — Upkeep de esencia:** cada fuerza paga `floor(unidades_totales / upkeep_divisor)` de esencia por tick, neteado contra el rendimiento en la misma fase 7 (propiedad post-combate, mismo momento que el yield). Una fuerza con menos unidades que `upkeep_divisor` no paga nada — el costo solo muerde una vez que el ejército ya creció, no en la apertura. `upkeep_divisor` en `era.yml`, calibración empírica declarada como knowledge gap, igual que F3: valor inicial `5`, razonado (ningún tope de guarnición existe en ninguna región, así que sin este costo la esencia y las unidades acumulan sin límite), no dato jugado.
+
+**F5 (continuación) — Upkeep de fortificación, o erosión:** además del upkeep de unidades, cada región fortificada (nivel > 0) de una fuerza le cuesta `economy.fortify_upkeep.at_level(nivel)` esencia por tick — mismo curva escalonada por nivel que costo/bono (valores iniciales 1/3/6 en niveles 1/2/3, calibración empírica como F3), pagado en la misma fase 7, después del upkeep de unidades y neteado contra el saldo real de la fuerza (esencia acumulada más el flujo neto del tick, no solo el flujo). Si el saldo no alcanza para cubrir todas sus regiones fortificadas, la fuerza paga en orden ascendente (nivel, luego ID léxico de la región) — el compromiso más barato primero — hasta agotar el saldo; cada región que no pudo pagarse pierde exactamente 1 nivel de fortificación ese tick (nunca bajo 0). Sin reembolso ni penalización adicional más allá del nivel perdido — es pura erosión, no una orden ni una acción de la fuerza.
+
+**F6 — Siege (compromiso multi-tick contra la fortificación ajena):** `siege` (fuerzas, from/to/count) compromete `count` unidades desde `from` — mismo cupo simultáneo que `attack_region`/`move_units` en fase 4, sin combate — contra una región hostil `to` con fortificación > 0 y sin asedio activo previo (un asedio por región, sin apilar). Las unidades comprometidas salen de `from` y quedan fuera de juego (sin producir, sin defender, sin poder actuar) mientras el asedio dura; ese es el costo real, no un recurso nuevo. Se declara una sola vez — no consume orden en los ticks siguientes. Estado persistente nuevo en `/world/sieges/<region>.yml`: `attacker`, `defender`, `from`, `units`, `ticks_elapsed`.
+
+Cada tick, en fase 7 (después del upkeep de unidades y de fortificación, mismo saldo real neteado): la fuerza atacante paga `economy.siege_upkeep` (esencia plana, valor inicial 3, calibración empírica como F3/F5) por cada asedio activo que sostiene. Si no alcanza el saldo, ese asedio termina de inmediato ese tick — sin erosión parcial, sin gracia. Si se paga, `ticks_elapsed` incrementa; cuando `ticks_elapsed` es múltiplo de `economy.siege_erosion_interval` (valor inicial 2, calibración empírica), la fortificación de `to` baja 1 nivel (piso 0). Un asedio recién declarado este tick no procesa upkeep ni erosión en su propio tick de declaración — solo a partir de la fase 7 del tick siguiente.
+
+Un asedio termina (sin acción explícita de cancelación en v1) cuando: (a) el upkeep no se puede pagar: fin inmediato; (b) la fortificación de `to` llega a 0 por la erosión: fin, ya no queda nada que erosionar; (c) `to` cambia de dueño por cualquier vía (el propio atacante la toma por `attack_region`, o un tercero la captura): fin, el asedio ya no tiene objeto — sitiar nunca captura por sí mismo, solo ablanda el muro. Al terminar por cualquier causa, las unidades comprometidas regresan a `from` si el atacante todavía la posee; si no, se pierden. Sin reembolso de esencia ya pagada.
+
+Sin aislamiento especial (decisión explícita): un asedio no bloquea nada en `to` — el defensor puede reforzar o fortificar con normalidad, y cualquier otra fuerza o el aventurero puede seguir actuando ahí. El costo del asedio es la exposición estratégica de tener unidades atadas en otro lugar, no un candado artificial.
+
+**F7 — Decree (categoría de acciones infrecuentes de alto impacto, fase 3):** `decree` (fuerzas, kind: `dismiss` | `surge_recruit`) es la válvula de escape que falta una vez que unidades y fortificación cuestan upkeep (F5/F6) — sin ella una fuerza solo puede acumular, nunca deshacerse de lo que no puede sostener.
+
+- `dismiss` (region, count): reduce en `count` las unidades de una región propia, sin reembolso de esencia — unidireccional, igual que todo otro gasto de esta economía (recruit, fortify, stakes).
+- `surge_recruit` (region, count): mismas precondiciones que `recruit` (región propia, esencia ≥ count × `recruit_cost`), pero entrega `2 × count` unidades — el costo por unidad y el upkeep de las unidades resultantes no cambian, solo el rendimiento de la acción.
+
+El costo real de `surge_recruit` es un **recargo plano por invocarlo**, encima del costo normal de recruit, que escala con uso consecutivo y resetea a base en cuanto pasa un tick sin usarlo ("castiga el spam, perdona la contención"). Curva de 3 niveles igual de forma que `fortify_cost`/`fortify_bonus` (`economy.decree_surge_surcharge`, valores iniciales 5/10/20, calibración empírica como F3): el streak persiste por fuerza (`surge_streak` en `forces/<id>.yml`, nunca visto por el jugador como recurso — es contador interno). Cada tick que la fuerza invoca `surge_recruit` al menos una vez, el streak sube en 1 (tope 3, no sigue duplicando después del tercer uso consecutivo) y el recargo de ESE tick se cobra según el streak resultante — un mismo streak cubre todas las órdenes `surge_recruit` de la misma fuerza en el mismo tick, no se vuelve a escalar dentro del tick. Cualquier tick en que la fuerza no invoque `surge_recruit` resetea su streak a 0, sin excepción ni gracia adicional.
+
+**F8 — Trade (aventurero ↔ fuerza, fase 6, junto a `claim_loot`):** el flujo que `docs/intent.md` original dejaba sin definir se resuelve como **tributo, no intercambio** — la esencia se transfiere genuinamente a la fuerza (segunda transferencia real de la economía, tras el botín; en todo el resto del juego la esencia se acuña o se destruye, nunca se mueve entre libros), nunca al revés. `trade` (aventurero, region — debe ser la posición actual) exige, en orden: (1) la región es propiedad de una fuerza (no neutral); (2) la reputación del aventurero con esa fuerza ya alcanza `reputation.thresholds.trade` (el umbral que desbloquea comercio, ya congelado — camino de arranque real: quests que dañan a una fuerza rival otorgan `quest_damages_force_rivals` a las demás, alcanzable en una sola quest); (3) esencia (pool pre-tick, compartido con recruit/fortify) ≥ `adventurer.trade_cost` (acción plana, no escalable — mismo patrón que `fortify`). Pasadas las tres, el intento **siempre resuelve — nunca se rechaza por la parte probabilística**, vía tirada seedeada: `sha256(seed:tick:actor:force) % 100` contra el umbral de éxito del tier de profundidad ESTRUCTURAL de la región (por prefijo del id — `capital-`, `arm-`, o ninguno de los dos → `ring` — independiente de quién la posea actualmente): `adventurer.trade_success_pct` (valores iniciales ring 50 / arm 75 / capital 100, calibración empírica como F3). Éxito: −costo esencia aventurero, +costo esencia fuerza, +`reputation.deltas.trade_per_tick` reputación (clamped a la escala de reputación, misma disciplina que las recompensas de quests en fase 8). Fallo: nada se mueve — ni esencia ni reputación — solo se gastó la orden, mismo principio que perder un duelo F1 no es "rechazado".
+
+**F9 — Gremio de Aventureros, Bronce (`travel` + `hold`; fase 9 spawn, fase 8 resolución; primera rebanada de un sistema mayor, deliberadamente parcial — Plata/Oro/Platino y capacidades quedan para PRs futuros, `docs/playtest-notes.md` idea #8):** un tablero determinista por capital de fuerza mantiene exactamente una misión activa de CADA tipo a la vez (`travel` y `hold`, contadas por separado — hasta dos por fuerza), `eligibility: adventurer`, `max_claimants: 1`, `stake: minor` — en cuanto una se reclama, expira, o no existe, fase 9 la reemplaza. Objetivo: una región elegida por `sha256(seed:tick:guild:force_id)` (`travel`) o `sha256(seed:tick:guild:hold:force_id)` (`hold` — digest deliberadamente distinto, no necesariamente el mismo objetivo) entre todas menos la capital propia de esa fuerza (naming congelado `capital-<n>` ↔ `force-<n>`).
+
+Cumplimiento de `travel`: la posición ACTUAL del aventurero == la región objetivo, cualquier tick hasta el `deadline` inclusive (`tick_spawn + guild.bronze.travel_deadline`, valor inicial 3) — sin verificación de ruta, igual que `blockade` no rastrea el camino recorrido. Cumplimiento de `hold`: mismo mecanismo de racha de ocupación consecutiva que `blockade` (idéntico código, `params.n_ticks` = `guild.bronze.hold_n_ticks`, valor inicial 2), deadline = `tick_spawn + quests.window_ticks` (reutilizado, no un número nuevo) — no toca el estado de la fuerza en absoluto (dueño, combate, yield siguen su curso independiente de la presencia del aventurero, mismo principio de coexistencia F4).
+
+Recompensa (ambos tipos, idéntica): tirada seedeada (`hash(seed, tick, adventurer_id, quest_id)`, paridad): acierto → +`guild.bronze.reputation_hit` reputación (con la fuerza dueña del tablero) y +`guild.bronze.essence_hit` esencia; fallo → +0 reputación y +`guild.bronze.essence_miss` esencia (mayor que el acierto, para que ningún intento sea negativo en valor esperado). Ninguno de los dos toca jamás `quest_damages_force`/`quest_damages_force_rivals` — no es erosión contra una fuerza, es la recompensa propia del Gremio. Sin capacidad otorgada en Bronce (el hacer es el punto). Sin umbral de reputación de entrada — es la primera escalera hacia el umbral de comercio (idea #5). Las misiones del Gremio no cuentan contra los cupos `max_active_minor`/`max_active_major` del motor rubber-band — son un flujo independiente aunque compartan el campo `tier` (solo para el bucket de stake).
 
 ## Decisiones congeladas — cierres finales (vacíos 1–4)
 
@@ -157,15 +188,20 @@ Umbrales: comercio ≥ +10, refugio ≥ +25, encargos (v2) ≥ +40. Reputación 
   era.yml            # cadencia, cap de ticks, seed, K de coronación,
                      # baseline de recursos, quema de loot, M de disipación,
                      # umbrales de reputación, tabla de triggers, presupuesto tokens,
-                     # caps de órdenes por tick, cap de comercio aventurero/tick,
-                     # costos recruit/fortify, cap F de fortificación
+                     # caps de órdenes por tick, trade_cost y trade_success_pct
+                     # (F8), costos recruit/fortify, cap F de fortificación,
+                     # upkeep_divisor y fortify_upkeep (F5),
+                     # siege_erosion_interval y siege_upkeep (F6),
+                     # decree_surge_surcharge (F7),
+                     # guild.bronze (F9)
   tick.txt           # puntero atómico de tick
   regions/<id>.yml   # dueño, recursos base, unidades presentes, fortificación, botín activo
-  forces/<id>.yml    # persona ref, esencia, unidades
+  forces/<id>.yml    # persona ref, esencia, unidades, surge_streak (F7)
   forces/adventurer-<handle>.yml  # controller, esencia, reputación, capacidades, quest personal
   graveyard/         # entidades muertas + títulos; sobrevive el reset de era
   quests/active/<id>.yml          # eligibility, objetivo, reward, stake, deadline, cupo
   quests/resolved/
+  sieges/<region>.yml             # asedio activo contra esa región (F6): attacker, defender, from, units, ticks_elapsed
 /moves/tick-<N>/<force>.yml       # batches consumidos, preservados como traza
 /lore/                            # write-only, LLM, jamás leído por adjudicación
 /chronicle/tick-<N>.md            # resumen mecánico por tick, generado por árbitro

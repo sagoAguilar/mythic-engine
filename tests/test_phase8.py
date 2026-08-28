@@ -131,6 +131,130 @@ def test_reputation_clamped_to_era_scale(state, moves):
     assert delta["reputation_changes"]["adventurer-sago"]["force-1"] == -5
 
 
+def _travel_quest(quest_id, region, force="force-1", deadline=1):
+    return {
+        "id": quest_id, "type": "travel", "tier": "minor", "eligibility": "adventurer",
+        "reward": 1, "stake": 1, "deadline": deadline, "max_claimants": 1,
+        "claimed_by": ["adventurer-sago"], "progress": {},
+        "params": {"region": region, "force": force},
+    }
+
+
+def test_travel_fulfills_when_adventurer_is_at_the_target_region(state):
+    # adventurer-sago sits at arm-1-b in this fixture
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {"travel-0-9": _travel_quest("travel-0-9", "arm-1-b")}
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert delta["quests_resolved"]["travel-0-9"] == "success"
+
+
+def test_travel_does_not_fulfill_when_adventurer_is_elsewhere(state):
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {"travel-0-9": _travel_quest("travel-0-9", "capital-1")}
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert "travel-0-9" not in delta["quests_resolved"]
+
+
+def test_travel_coin_flip_hit_grants_reputation_and_essence(state):
+    # sha256(seed:1:adventurer-sago:travel-0-9) parity -> hit
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {"travel-0-9": _travel_quest("travel-0-9", "arm-1-b")}
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert delta["essence_changes"]["adventurer-sago"] == CONFIG.guild.bronze.essence_hit
+    assert delta["reputation_changes"] == {
+        "adventurer-sago": {"force-1": CONFIG.guild.bronze.reputation_hit}
+    }
+
+
+def test_travel_coin_flip_miss_grants_no_reputation_but_more_essence(state):
+    # sha256(seed:1:adventurer-sago:travel-1-1) parity -> miss
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {"travel-1-1": _travel_quest("travel-1-1", "arm-1-b")}
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert delta["essence_changes"]["adventurer-sago"] == CONFIG.guild.bronze.essence_miss
+    assert delta["reputation_changes"] == {}
+    assert CONFIG.guild.bronze.essence_miss > CONFIG.guild.bronze.essence_hit  # never a worse outcome
+
+
+def test_travel_never_damages_the_boards_own_force_or_its_rivals(state):
+    # unlike raid/blockade, a travel success must never trigger
+    # quest_damages_force / quest_damages_force_rivals against anyone
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {"travel-0-9": _travel_quest("travel-0-9", "arm-1-b", force="force-1")}
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    reputation = delta["reputation_changes"]["adventurer-sago"]
+    assert "force-2" not in reputation
+    assert "force-3" not in reputation
+
+
+def _hold_quest(quest_id, region, force="force-1", deadline=5, progress=None):
+    return {
+        "id": quest_id, "type": "hold", "tier": "minor", "eligibility": "adventurer",
+        "reward": 1, "stake": 1, "deadline": deadline, "max_claimants": 1,
+        "claimed_by": ["adventurer-sago"], "progress": progress or {},
+        "params": {"region": region, "force": force, "n_ticks": CONFIG.guild.bronze.hold_n_ticks},
+    }
+
+
+def test_hold_progresses_without_fulfilling_before_n_ticks(state):
+    # adventurer-sago sits at arm-1-b; first tick of occupation, n_ticks=2
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {"hold-0-9": _hold_quest("hold-0-9", "arm-1-b")}
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert "hold-0-9" not in delta["quests_resolved"]
+    assert delta["quest_progress"] == {"hold-0-9": {"adventurer-sago": 1}}
+
+
+def test_hold_fulfills_on_reaching_n_ticks(state):
+    # sha256(seed:1:adventurer-sago:hold-0-9) parity -> hit
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {
+        "hold-0-9": _hold_quest("hold-0-9", "arm-1-b", progress={"adventurer-sago": 1})
+    }
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert delta["quests_resolved"]["hold-0-9"] == "success"
+    assert delta["essence_changes"]["adventurer-sago"] == CONFIG.guild.bronze.essence_hit
+    assert delta["reputation_changes"] == {
+        "adventurer-sago": {"force-1": CONFIG.guild.bronze.reputation_hit}
+    }
+
+
+def test_hold_streak_resets_when_occupation_breaks(state):
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {
+        # sago is at arm-1-b, not capital-1 - occupation breaks this tick
+        "hold-1-4": _hold_quest("hold-1-4", "capital-1", progress={"adventurer-sago": 1})
+    }
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert "hold-1-4" not in delta["quests_resolved"]
+    assert delta["quest_progress"] == {"hold-1-4": {"adventurer-sago": 0}}
+
+
+def test_hold_coin_flip_miss_grants_no_reputation_but_more_essence(state):
+    # sha256(seed:1:adventurer-sago:hold-1-4) parity -> miss
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {
+        "hold-1-4": _hold_quest("hold-1-4", "arm-1-b", progress={"adventurer-sago": 1})
+    }
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    assert delta["quests_resolved"]["hold-1-4"] == "success"
+    assert delta["essence_changes"]["adventurer-sago"] == CONFIG.guild.bronze.essence_miss
+    assert delta["reputation_changes"] == {}
+
+
+def test_hold_never_damages_the_boards_own_force_or_its_rivals(state):
+    working = copy.deepcopy(state)
+    working["quests"]["active"] = {
+        "hold-0-9": _hold_quest(
+            "hold-0-9", "arm-1-b", force="force-1", progress={"adventurer-sago": 1}
+        )
+    }
+    delta = resolve_quests(working, [], CONFIG, SEED)
+    reputation = delta["reputation_changes"]["adventurer-sago"]
+    assert "force-2" not in reputation
+    assert "force-3" not in reputation
+
+
 def test_non_quest_orders_are_not_phase8_business(state):
     batch = {"actor": "force-1", "tick": 1, "origin": "agent",
              "orders": [{"action": "fortify", "region": "capital-1"}]}

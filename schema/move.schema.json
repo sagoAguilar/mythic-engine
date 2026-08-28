@@ -22,17 +22,22 @@
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "count": { "type": "integer", "minimum": 1 },
     "order": {
+      "description": "One order in the batch: exactly one of the ten catalog actions below.",
       "oneOf": [
         { "$ref": "#/$defs/move_units" },
         { "$ref": "#/$defs/attack_region" },
         { "$ref": "#/$defs/recruit" },
         { "$ref": "#/$defs/fortify" },
+        { "$ref": "#/$defs/siege" },
+        { "$ref": "#/$defs/decree" },
         { "$ref": "#/$defs/accept_quest" },
         { "$ref": "#/$defs/spawn_adventurer" },
-        { "$ref": "#/$defs/claim_loot" }
+        { "$ref": "#/$defs/claim_loot" },
+        { "$ref": "#/$defs/trade" }
       ]
     },
     "move_units": {
+      "description": "Peaceful transfer of units between adjacent regions - both forces and the adventurer may issue this. `to` must be adjacent to `from` and either already owned by the acting actor or neutral (owner: null); moving into hostile territory requires attack_region instead. For the adventurer, count must be exactly 1 (their own single unit), and any owner is a legal destination - they coexist as a non-combatant rather than being blocked or fighting (F4).",
       "type": "object",
       "properties": {
         "action": { "const": "move_units" },
@@ -44,18 +49,47 @@
       "additionalProperties": false
     },
     "attack_region": {
+      "description": "Force-only: commits count units from `from` against a hostile `to` (owned by a rival, not neutral and not the actor's own). Resolved in phase 5 via F1 - attacker power is `count`; defender power is their units plus fortification bonus; the loser is annihilated. The `target: adventurer` variant is different in kind, not degree: it declares a hunt that kills a non-combatant adventurer present in `to` outright (no F1 duel, just the order slot's cost), and spawns a vengeance quest against the killer (era.yml's `adventurer_death_vengeance` trigger).",
       "type": "object",
       "properties": {
         "action": { "const": "attack_region" },
         "from": { "$ref": "#/$defs/region_id" },
         "to": { "$ref": "#/$defs/region_id" },
         "count": { "$ref": "#/$defs/count" },
-        "target": { "const": "adventurer" }
+        "target": {
+          "const": "adventurer",
+          "description": "Declares this attack a hunt against a non-combatant adventurer present in `to`, instead of a territorial assault on its owner."
+        }
       },
       "required": ["action", "from", "to", "count"],
       "additionalProperties": false
     },
+    "siege": {
+      "description": "Force-only: commits count units from `from` to besiege a hostile, fortified `to` (owned by a rival, fortification > 0, not already under another siege) - no F1 duel, the committed units leave `from` and sit idle for as long as the siege runs (F6). Declared once; no reorder needed on later ticks. Each tick the siege survives, its attacker pays `economy.siege_upkeep` flat essence (checked after unit and fortify upkeep, against the force's real balance) - unpaid ends it immediately. Paid ticks accumulate toward `economy.siege_erosion_interval`: every time that many ticks elapse, `to` loses one fortification level. The siege also ends the moment `to`'s fortification hits 0 or `to` changes owner by any means (sieging alone never captures). On any ending, committed units return to `from` if the attacker still owns it, otherwise they're lost - no refund of essence already spent.",
+      "type": "object",
+      "properties": {
+        "action": { "const": "siege" },
+        "from": { "$ref": "#/$defs/region_id" },
+        "to": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" }
+      },
+      "required": ["action", "from", "to", "count"],
+      "additionalProperties": false
+    },
+    "decree": {
+      "description": "Force-only (F7): an infrequent, high-impact action distinct from routine orders. `kind: dismiss` reduces a region's units by `count`, no essence change and no refund - the release valve for upkeep pressure. `kind: surge_recruit` shares recruit's preconditions (own region, essence >= count * economy.recruit_cost) but delivers 2x count units for it - the per-unit cost and the resulting units' upkeep are unaffected. What surge_recruit actually costs extra is a flat `economy.decree_surge_surcharge` on top, keyed to the force's consecutive-tick streak of using it (capped at the 3rd tier, not doubling forever) - any tick without a surge_recruit resets that streak to 0.",
+      "type": "object",
+      "properties": {
+        "action": { "const": "decree" },
+        "kind": { "enum": ["dismiss", "surge_recruit"] },
+        "region": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" }
+      },
+      "required": ["action", "kind", "region", "count"],
+      "additionalProperties": false
+    },
     "recruit": {
+      "description": "Force-only: adds `count` units to a region the force already owns, at `economy.recruit_cost` essence per unit (era.yml), spent from essence held at the start of the tick.",
       "type": "object",
       "properties": {
         "action": { "const": "recruit" },
@@ -66,6 +100,7 @@
       "additionalProperties": false
     },
     "fortify": {
+      "description": "Force-only: adds one persistent fortification level (up to `economy.fortify_cap`) to a region the force owns, at that level's `economy.fortify_cost` essence (escalating - level 3 costs strictly more than level 1, not a flat per-level price), raising that region's defense power by the level's cumulative `economy.fortify_bonus` in all future combat there.",
       "type": "object",
       "properties": {
         "action": { "const": "fortify" },
@@ -75,6 +110,7 @@
       "additionalProperties": false
     },
     "accept_quest": {
+      "description": "Claims an active quest by id, subject to its eligibility (forces/adventurer/any), any claim-slot limit, and the actor's ability to pay its stake - charged immediately on acceptance and never refunded, win or lose. Reward and reputation effects apply only later, if and when the quest resolves as a success.",
       "type": "object",
       "properties": {
         "action": { "const": "accept_quest" },
@@ -84,6 +120,7 @@
       "additionalProperties": false
     },
     "spawn_adventurer": {
+      "description": "Human-only, and only once per username: creates the adventurer entity with baseline essence in a spawnable region (a neutral region, or one belonging to whichever force currently holds the least territory). Rejected if the username already has a living adventurer entity.",
       "type": "object",
       "properties": {
         "action": { "const": "spawn_adventurer" },
@@ -94,9 +131,20 @@
       "additionalProperties": false
     },
     "claim_loot": {
+      "description": "Adventurer-only: collects the full essence value of any active loot deposited in the region the adventurer currently occupies, extinguishing the pot. If multiple eligible adventurers stand on the same pot, the seeded collision formula (not batch order) decides who claims it - later claimants are rejected once it's gone.",
       "type": "object",
       "properties": {
         "action": { "const": "claim_loot" },
+        "region": { "$ref": "#/$defs/region_id" }
+      },
+      "required": ["action", "region"],
+      "additionalProperties": false
+    },
+    "trade": {
+      "description": "Adventurer-only (F8): trades essence for reputation with whichever force owns the region the adventurer currently occupies - that region must belong to a force (not neutral), and the adventurer's reputation with it must already meet reputation.thresholds.trade. Costs a flat adventurer.trade_cost essence, but only on success - a failed roll spends the order slot and nothing else. Success chance is seeded (sha256(seed:tick:adventurer_id:force_id)) and depends on the region's structural depth tier (adventurer.trade_success_pct): ring is riskiest, arm safer, capital guaranteed. On success essence genuinely transfers to the force (not destroyed) and reputation rises by reputation.deltas.trade_per_tick.",
+      "type": "object",
+      "properties": {
+        "action": { "const": "trade" },
         "region": { "$ref": "#/$defs/region_id" }
       },
       "required": ["action", "region"],

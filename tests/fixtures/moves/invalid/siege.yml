@@ -1,0 +1,10 @@
+# invalid: siege has no "target" field (that's attack_region's hunt variant)
+actor: force-2
+tick: 3
+origin: agent
+orders:
+  - action: siege
+    from: ring-2
+    to: ring-1
+    count: 2
+    target: adventurer

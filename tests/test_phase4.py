@@ -98,6 +98,104 @@ def test_targeted_adventurer_attack_is_staged(state):
     ]
 
 
+def _siege(actor, src, dst, count):
+    return {
+        "actor": actor, "tick": 1, "origin": "agent",
+        "orders": [{"action": "siege", "from": src, "to": dst, "count": count}],
+    }
+
+
+def test_siege_commits_units_and_starts_a_record(state):
+    # force-1 (ring-1) besieges force-2's fortified ring-2 next door
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["fortification"] = 1
+    delta = resolve_movement(working, [_siege("force-1", "ring-1", "ring-2", 2)], CONFIG, SEED)
+    assert delta["rejected_orders"] == []
+    assert delta["unit_changes"] == {"ring-1": -2}
+    assert delta["pending_combats"] == []  # no F1 duel - a siege never fights
+    assert delta["sieges_started"] == {
+        "ring-2": {
+            "attacker": "force-1", "defender": "force-2",
+            "from": "ring-1", "units": 2, "ticks_elapsed": 0,
+        }
+    }
+
+
+def test_adventurer_cannot_siege(state):
+    batch = _siege("adventurer-sago", "arm-2-b", "ring-2", 1)
+    delta = resolve_movement(state, [batch], CONFIG, SEED)
+    assert delta["sieges_started"] == {}
+    assert "force-only" in delta["rejected_orders"][0]["reason"]
+
+
+def test_siege_from_unowned_region_rejected(state):
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["fortification"] = 1
+    delta = resolve_movement(working, [_siege("force-1", "ring-2", "ring-1", 1)], CONFIG, SEED)
+    assert "not owned by force-1" in delta["rejected_orders"][0]["reason"]
+
+
+def test_siege_exceeding_available_units_rejected(state):
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["fortification"] = 1
+    delta = resolve_movement(working, [_siege("force-1", "ring-1", "ring-2", 99)], CONFIG, SEED)
+    assert "exceed" in delta["rejected_orders"][0]["reason"]
+
+
+def test_siege_of_non_adjacent_region_rejected(state):
+    working = copy.deepcopy(state)
+    working["regions"]["capital-2"]["fortification"] = 1
+    delta = resolve_movement(working, [_siege("force-1", "ring-1", "capital-2", 1)], CONFIG, SEED)
+    assert "not adjacent" in delta["rejected_orders"][0]["reason"]
+
+
+def test_siege_of_own_or_neutral_region_rejected(state):
+    working = copy.deepcopy(state)
+    delta = resolve_movement(
+        working,
+        [_siege("force-1", "capital-1", "arm-1-a", 1),  # own
+         _siege("force-1", "ring-1", "ring-3", 1)],       # neutral
+        CONFIG, SEED,
+    )
+    assert len(delta["rejected_orders"]) == 2
+    assert all("not hostile" in r["reason"] for r in delta["rejected_orders"])
+
+
+def test_siege_of_unfortified_region_rejected(state):
+    # ring-2's fortification is 0 in the base fixture - nothing to erode
+    delta = resolve_movement(state, [_siege("force-1", "ring-1", "ring-2", 1)], CONFIG, SEED)
+    assert "fortification" in delta["rejected_orders"][0]["reason"]
+
+
+def test_siege_of_already_besieged_region_rejected(state):
+    working = copy.deepcopy(state)
+    working["regions"]["ring-2"]["fortification"] = 1
+    working["sieges"] = {
+        "ring-2": {"attacker": "force-3", "defender": "force-2",
+                   "from": "arm-3-a", "units": 1, "ticks_elapsed": 4}
+    }
+    delta = resolve_movement(working, [_siege("force-1", "ring-1", "ring-2", 1)], CONFIG, SEED)
+    assert "already under siege" in delta["rejected_orders"][0]["reason"]
+    assert delta["sieges_started"] == {}
+
+
+def test_two_sieges_on_the_same_region_in_one_tick_second_rejected(state):
+    working = copy.deepcopy(state)
+    working["regions"]["ring-1"]["fortification"] = 1
+    batch = {
+        "actor": "force-2", "tick": 1, "origin": "agent",
+        "orders": [
+            {"action": "siege", "from": "ring-2", "to": "ring-1", "count": 1},
+            {"action": "siege", "from": "ring-2", "to": "ring-1", "count": 1},
+        ],
+    }
+    delta = resolve_movement(working, [batch], CONFIG, SEED)
+    assert len(delta["sieges_started"]) == 1
+    assert delta["rejected_orders"] == [
+        {"actor": "force-2", "index": 1, "reason": "siege: ring-1 is already under siege"}
+    ]
+
+
 def test_attack_on_own_or_neutral_region_rejected(state):
     batch = {
         "actor": "force-3",

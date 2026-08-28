@@ -42,6 +42,42 @@ def load_move_history(state_dir: Path, upto_tick: int) -> list[dict]:
     return history
 
 
+def disposal_summary(state: dict, force_id: str) -> dict:
+    """What *force_id* actually has to work with this tick.
+
+    The full state dump already contains this, but a force has to
+    re-derive "which regions are mine" and "who borders them" from a
+    flat region list every time; this pre-computes it so that's not
+    left to inference. Also surfaces any active quest this force is
+    eligible to accept - eligibility ``forces`` or ``any`` - since
+    ``accept_quest`` is otherwise easy to miss buried in ``quests.active``.
+    """
+    regions = state["regions"]
+    owned = {
+        region_id: {
+            "units": region["units"],
+            "fortification": region["fortification"],
+            "yield": region["yield"],
+            "adjacent": [
+                {"id": neighbor_id, "owner": regions[neighbor_id]["owner"]}
+                for neighbor_id in region["adjacent"]
+            ],
+        }
+        for region_id, region in regions.items()
+        if region["owner"] == force_id
+    }
+    eligible_quests = {
+        quest_id: quest
+        for quest_id, quest in state["quests"]["active"].items()
+        if quest["eligibility"] in ("forces", "any")
+    }
+    return {
+        "essence": state["forces"][force_id]["essence"],
+        "regions": owned,
+        "eligible_quests": eligible_quests,
+    }
+
+
 def build_context(state_dir, force_id: str) -> dict:
     """World state + full move history for the tick *force_id* must now decide.
 
@@ -58,4 +94,5 @@ def build_context(state_dir, force_id: str) -> dict:
         "force_id": force_id,
         "state": state,
         "history": load_move_history(state_dir, state["tick"]),
+        "disposal": disposal_summary(state, force_id),
     }

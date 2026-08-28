@@ -21,16 +21,37 @@ economy:
   yield_capital: 2
   yield_ring: 2
   recruit_cost: 2              # essence per unit
-  fortify_cost: 5
-  fortify_bonus: 2             # defense power per fortification level
+  fortify_cost:                # escalating: reaching level 3 costs more than level 1
+    level_1: 5
+    level_2: 10
+    level_3: 20
+  fortify_bonus:                # cumulative defense bonus AT each level (not a flat multiplier)
+    level_1: 2
+    level_2: 5
+    level_3: 10
+  fortify_upkeep:               # essence/tick per fortified region AT each level; unpaid -> erodes 1 level
+    level_1: 1
+    level_2: 3
+    level_3: 6
   fortify_cap: 3
+  upkeep_divisor: 5            # essence upkeep per tick: floor(force's total units / this)
+  siege_erosion_interval: 2    # ticks between each -1 fortification level a paid siege inflicts
+  siege_upkeep: 3              # flat essence/tick per active siege; unpaid -> ends immediately
+  decree_surge_surcharge:      # flat surcharge for surge_recruit, by consecutive-tick streak (capped at 3)
+    level_1: 5
+    level_2: 10
+    level_3: 20
 
 combat:
   tie_favors: defender         # frozen: strict determinism, no seed in combat
 
 adventurer:
   baseline_essence: 5
-  trade_cap_per_tick: 3
+  trade_cost: 3                # flat essence per trade attempt (not a per-tick volume cap)
+  trade_success_pct:            # seeded success chance by the region's structural depth tier
+    ring: 50
+    arm: 75
+    capital: 100
   loot_burn_fraction: 0.5      # fraction of essence burned on death
   loot_dissipation_ticks: 5    # M: ticks before regional loot dissipates
   kill_order_cost: 1           # orders consumed by target: adventurer declaration
@@ -72,6 +93,15 @@ quests:
     supremacy_minor: 0.45      # leader fraction spawning minor quests
     supremacy_major: 0.55      # leader fraction spawning major quests
     adventurer_death_vengeance: raid   # spawns raid against the killer
+
+guild:                         # Adventurers' Guild (F9) - Bronze/travel + hold only so far,
+                                # PROVISIONAL: first slice of a larger, phased system
+  bronze:
+    travel_deadline: 3         # ticks from spawn to reach the target region
+    hold_n_ticks: 2            # consecutive occupation ticks required; deadline reuses quests.window_ticks
+    essence_hit: 1             # coin-flip hit: reputation gained too
+    essence_miss: 2            # coin-flip miss: no reputation, bigger consolation essence
+    reputation_hit: 1          # +0 reputation on a miss (not a tunable - the definition of "miss")
 
 map:
   arms: 3

@@ -2,6 +2,9 @@ adventurer_deaths: []
 adventurer_moves:
   adventurer-sago: capital-2
 adventurer_spawned: []
+capability_grants: {}
+guild_completions: {}
+sanctuary_activated: []
 batches:
 - actor: adventurer-sago
   orders:

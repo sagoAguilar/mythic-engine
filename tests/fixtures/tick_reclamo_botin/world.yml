@@ -85,12 +85,57 @@ era:
     seed: 20260706
     tick_cap: 100
   guild:
-    bronze:
-      essence_hit: 1
-      essence_miss: 2
-      reputation_hit: 1
-      travel_deadline: 3
-      hold_n_ticks: 2
+    capabilities:
+      costs:
+        entrench: 2
+        insure: 1
+        sanctuary: 2
+        swift_march: 1
+        wager: 0
+      sanctuary_ticks: 2
+      shared:
+        bronze: swift_march
+        silver: sanctuary
+      signature:
+        force-1: insure
+        force-2: entrench
+        force-3: wager
+      swift_march_hops: 2
+    objectives:
+      hold_n_ticks:
+        bronze: 1
+        gold: 3
+        platinum: 5
+        silver: 2
+      travel_deadline:
+        bronze: 3
+        gold: 7
+        platinum: 10
+        silver: 5
+    platinum_condition:
+      force_regions_max: 1
+    rewards:
+      essence:
+        bronze_hit: 1
+        bronze_miss: 2
+        gold: 8
+        platinum: 25
+        silver: 3
+      reputation:
+        bronze: 1
+        gold: 5
+        platinum: 15
+        silver: 1
+    stakes:
+      bronze: minor
+      gold: major
+      platinum: major
+      silver: minor
+    thresholds:
+      bronze: 0
+      gold: 25
+      platinum: 70
+      silver: 10
   map:
     arms: 3
     regions_per_arm: 3

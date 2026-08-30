@@ -1,6 +1,6 @@
 """Phase 9 of the resolution order: quest spawning by triggers.
 
-Three sources (docs/intent.md; forces-as-emitters is v2):
+Three v1 sources (docs/intent.md; forces-as-emitters is v2):
 
 **Vengeance** (era.yml trigger table): each adventurer killed this tick
 by a force spawns a quest of the configured type against the killer —
@@ -18,35 +18,38 @@ holds: minors in fixed order raid then blockade, the major slot
 spawning dethrone once the leader has a supremacy streak and attrition
 otherwise. No dedupe by type — the cap is the only intensity limiter.
 
-**Guild** (F9, docs/playtest-notes.md idea #8 — Bronze's two quest
-types, ``travel`` and ``hold``, are the only ones built so far):
-independent of the rubber band entirely — not a trigger, a standing
-pool. Each force's capital board keeps exactly one active quest of each
-type at a time (so up to two per force, one ``travel`` + one ``hold``,
-tracked separately); the moment either is claimed, expires, or doesn't
-exist yet, this phase spawns its replacement. Target: a seeded pick
-over every region except that force's own capital (frozen naming,
-``capital-<n>`` <-> ``force-<n>``) —
-``sha256(seed:tick:guild:force_id)`` for ``travel`` (already shipped,
-left untouched), ``sha256(seed:tick:guild:hold:force_id)`` for ``hold``
-(deliberately a different digest, so the two types don't always land on
-the same region). Guild quests share the rubber band's ``tier`` field
-only for its stake-bucket meaning (Bronze charges the ``minor`` stake)
-— they never count against ``max_active_minor``/``max_active_major``,
-which govern the rubber band's own composition cap and nothing else.
+**Guild boards** (docs/intent.md point 9): a fourth deterministic
+source, spawned last so it never shares the rubber-band cap. Each
+capital's board offers one active quest per tier the sole living
+adventurer can currently reach — Bronze (rep >= 0) through Platinum
+(rep >= threshold *and* that force reduced to <= platinum_condition
+regions). A ``(force, tier)`` slot holds at most one active guild quest;
+an occupied slot is left alone, an empty one refilled. Type and target
+come from a single seeded hash ``sha256(seed:tick:guild:force:tier)``:
+even -> ``travel`` (reach region X, X = seeded pick over every region
+except the adventurer's position), odd -> ``hold`` (occupy X for N
+ticks, X = seeded neutral like blockade). Guild spawn is a no-op unless
+exactly one adventurer is alive — multi-adventurer interaction is v1-
+deferred, so a two-adventurer state (e.g. mid-tick after a spawn)
+produces no boards.
 
 Frozen parameter formulas: raid X = the target force's least-garrisoned
 region (ties by lowest lexical id); blockade X = seeded pick
 sha256(seed:tick:blockade) % n over the sorted neutrals adjacent to the
 leader (skipped when none exist); T = tick + window_ticks; N and D and
-all rewards/stakes from era.yml. Quest ids are ``<type>-<tick>-<seq>``
-with seq counting spawns within the tick.
+all rewards/stakes from era.yml. Guild travel deadline = tick +
+guild.objectives.travel_deadline[tier]; guild hold deadline = tick +
+window_ticks; guild reward field = 0 for Bronze (coin-flip paid in
+phase 8) and the flat per-tier essence otherwise. Quest ids are
+``<type>-<tick>-<seq>`` with seq counting spawns within the tick.
 
 Pure function: no input mutation, no I/O, no wall clock; the only
-randomness is the seeded blockade/guild picks.
+randomness is the seeded blockade and guild-board picks.
 """
 
 import hashlib
+
+GUILD_TIERS = ("bronze", "silver", "gold", "platinum")
 
 
 def _least_garrisoned(state: dict, force_id: str) -> str | None:
@@ -56,6 +59,23 @@ def _least_garrisoned(state: dict, force_id: str) -> str | None:
         if region["owner"] == force_id
     ]
     return min(owned)[1] if owned else None
+
+
+def _sole_living_adventurer(state: dict) -> dict | None:
+    """The single living adventurer, or None when zero or several are alive.
+
+    Guild boards are a single-adventurer mechanic in v1 (docs/intent.md);
+    with no adventurer there is no one to quest, and with several the
+    interaction is deferred, so both cases spawn nothing.
+    """
+    adventurers = state.get("adventurers", {})
+    if len(adventurers) != 1:
+        return None
+    return next(iter(adventurers.values()))
+
+
+def _force_region_count(state: dict, force_id: str) -> int:
+    return sum(1 for r in state["regions"].values() if r["owner"] == force_id)
 
 
 def _strict_leader(state: dict) -> tuple[str | None, int]:
@@ -80,28 +100,31 @@ def resolve_quest_spawn(state: dict, moves: list, config, seed: int) -> dict:
     tick = state["tick"] + 1
     active = state["quests"]["active"]
 
-    # guild quests share `tier` only for the stake bucket - they never
-    # count toward the rubber band's own composition cap
+    # guild boards carry the rubber band's `tier` only for the stake bucket;
+    # they never share its composition cap (docstring: "never shares the
+    # rubber-band cap"), so an active guild board is not counted here.
     _GUILD_TYPES = ("travel", "hold")
     minors = sum(
-        1 for q in active.values() if q["tier"] == "minor" and q["type"] not in _GUILD_TYPES
+        1 for q in active.values()
+        if q["tier"] == "minor" and q["type"] not in _GUILD_TYPES
     )
     majors = sum(
-        1 for q in active.values() if q["tier"] == "major" and q["type"] not in _GUILD_TYPES
+        1 for q in active.values()
+        if q["tier"] == "major" and q["type"] not in _GUILD_TYPES
     )
     spawned: dict[str, dict] = {}
     seq = 0
 
-    def spawn(quest_type: str, tier: str, params: dict, **overrides) -> None:
+    def spawn(quest_type: str, tier: str, params: dict) -> None:
         nonlocal seq, minors, majors
         seq += 1
         quest_id = f"{quest_type}-{tick}-{seq}"
-        quest = {
+        spawned[quest_id] = {
             "id": quest_id,
             "type": quest_type,
             "tier": tier,
             "eligibility": "any" if tier == "minor" else "forces",
-            "reward": getattr(config.quests.rewards, quest_type, None),
+            "reward": getattr(config.quests.rewards, quest_type),
             "stake": config.quests.stakes.minor if tier == "minor" else config.quests.stakes.major,
             "deadline": tick + config.quests.window_ticks,
             "max_claimants": "open" if tier == "minor" else 1,
@@ -109,10 +132,6 @@ def resolve_quest_spawn(state: dict, moves: list, config, seed: int) -> dict:
             "progress": {},
             "params": params,
         }
-        quest.update(overrides)
-        spawned[quest_id] = quest
-        if quest_type in _GUILD_TYPES:
-            return
         if tier == "minor":
             minors += 1
         else:
@@ -128,54 +147,6 @@ def resolve_quest_spawn(state: dict, moves: list, config, seed: int) -> dict:
             continue
         spawn(config.quests.triggers.adventurer_death_vengeance, "minor",
               {"region": target, "force": killer})
-
-    # --- guild: exactly one active Bronze travel quest per force's board -----
-    for force_id in sorted(state["forces"]):
-        has_travel = any(
-            q["type"] == "travel" and q["params"]["force"] == force_id
-            for q in list(active.values()) + list(spawned.values())
-        )
-        if has_travel:
-            continue
-        capital_id = f"capital-{force_id.split('-', 1)[1]}"
-        candidates = sorted(r for r in state["regions"] if r != capital_id)
-        pick = int(
-            hashlib.sha256(f"{seed}:{tick}:guild:{force_id}".encode("utf-8")).hexdigest(),
-            16,
-        ) % len(candidates)
-        spawn(
-            "travel", "minor", {"region": candidates[pick], "force": force_id},
-            eligibility="adventurer",
-            reward=config.guild.bronze.essence_hit,
-            max_claimants=1,
-            deadline=tick + config.guild.bronze.travel_deadline,
-        )
-
-    # --- guild: exactly one active Bronze hold quest per force's board -------
-    for force_id in sorted(state["forces"]):
-        has_hold = any(
-            q["type"] == "hold" and q["params"]["force"] == force_id
-            for q in list(active.values()) + list(spawned.values())
-        )
-        if has_hold:
-            continue
-        capital_id = f"capital-{force_id.split('-', 1)[1]}"
-        candidates = sorted(r for r in state["regions"] if r != capital_id)
-        pick = int(
-            hashlib.sha256(f"{seed}:{tick}:guild:hold:{force_id}".encode("utf-8")).hexdigest(),
-            16,
-        ) % len(candidates)
-        spawn(
-            "hold", "minor", {
-                "region": candidates[pick],
-                "n_ticks": config.guild.bronze.hold_n_ticks,
-                "force": force_id,
-            },
-            eligibility="adventurer",
-            reward=config.guild.bronze.essence_hit,
-            max_claimants=1,
-            deadline=tick + config.quests.window_ticks,
-        )
 
     # --- rubber band against a strict unique leader ---------------------------
     leader, region_count = _strict_leader(state)
@@ -219,5 +190,69 @@ def resolve_quest_spawn(state: dict, moves: list, config, seed: int) -> dict:
                     "units_at_spawn": units,
                     "delta": config.quests.attrition_delta,
                 })
+
+    # --- guild boards: one quest per accessible, unoccupied (force, tier) -----
+    adventurer = _sole_living_adventurer(state)
+    if adventurer is not None:
+        guild = config.guild
+        occupied = {
+            (q["params"]["force"], q["params"]["guild_tier"])
+            for q in active.values()
+            if q.get("eligibility") == "adventurer" and "guild_tier" in q.get("params", {})
+        }
+        for force_id in sorted(state["forces"]):
+            reputation = adventurer["reputation"].get(force_id, 0)
+            for tier in GUILD_TIERS:
+                if reputation < getattr(guild.thresholds, tier):
+                    continue
+                if tier == "platinum" and (
+                    _force_region_count(state, force_id)
+                    > guild.platinum_condition.force_regions_max
+                ):
+                    continue
+                if (force_id, tier) in occupied:
+                    continue
+
+                digest = hashlib.sha256(
+                    f"{seed}:{tick}:guild:{force_id}:{tier}".encode("utf-8")
+                ).hexdigest()
+                h = int(digest, 16)
+                quest_type = "travel" if h % 2 == 0 else "hold"
+                if quest_type == "travel":
+                    candidates = sorted(
+                        r for r in state["regions"] if r != adventurer["position"]
+                    )
+                else:
+                    candidates = sorted(
+                        r for r, region in state["regions"].items()
+                        if region["owner"] is None
+                    )
+                if not candidates:  # nowhere legal to send them this tick
+                    continue
+                region = candidates[h % len(candidates)]
+
+                bucket = getattr(guild.stakes, tier)  # minor | major
+                params = {"region": region, "force": force_id, "guild_tier": tier}
+                if quest_type == "travel":
+                    deadline = tick + getattr(guild.objectives.travel_deadline, tier)
+                else:
+                    params["n_ticks"] = getattr(guild.objectives.hold_n_ticks, tier)
+                    deadline = tick + config.quests.window_ticks
+
+                seq += 1
+                quest_id = f"{quest_type}-{tick}-{seq}"
+                spawned[quest_id] = {
+                    "id": quest_id,
+                    "type": quest_type,
+                    "tier": bucket,
+                    "eligibility": "adventurer",
+                    "reward": 0 if tier == "bronze" else getattr(guild.rewards.essence, tier),
+                    "stake": getattr(config.quests.stakes, bucket),
+                    "deadline": deadline,
+                    "max_claimants": 1,
+                    "claimed_by": [],
+                    "progress": {},
+                    "params": params,
+                }
 
     return {"quests_spawned": dict(sorted(spawned.items()))}

@@ -10,6 +10,7 @@ offending key by its dotted path.
 import dataclasses
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 
 import yaml
 
@@ -214,17 +215,81 @@ class Quests:
 
 
 @dataclass(frozen=True)
-class GuildBronze:
-    travel_deadline: int
-    hold_n_ticks: int
-    essence_hit: int
-    essence_miss: int
-    reputation_hit: int
+class GuildPerTier:
+    """A value per guild tier. Reused for thresholds, objective windows, and
+    reputation rewards — every guild table keyed by the four tier names."""
+    bronze: int
+    silver: int
+    gold: int
+    platinum: int
+
+
+@dataclass(frozen=True)
+class GuildPlatinumCondition:
+    force_regions_max: int
+
+
+@dataclass(frozen=True)
+class GuildObjectives:
+    travel_deadline: GuildPerTier
+    hold_n_ticks: GuildPerTier
+
+
+@dataclass(frozen=True)
+class GuildEssenceRewards:
+    bronze_hit: int
+    bronze_miss: int
+    silver: int
+    gold: int
+    platinum: int
+
+
+@dataclass(frozen=True)
+class GuildRewards:
+    essence: GuildEssenceRewards
+    reputation: GuildPerTier
+
+
+@dataclass(frozen=True)
+class GuildStakes:
+    bronze: str
+    silver: str
+    gold: str
+    platinum: str
+
+
+@dataclass(frozen=True)
+class GuildCapabilityCosts:
+    swift_march: int
+    sanctuary: int
+    insure: int
+    entrench: int
+    wager: int
+
+
+@dataclass(frozen=True)
+class GuildSharedCapabilities:
+    bronze: str
+    silver: str
+
+
+@dataclass(frozen=True)
+class GuildCapabilities:
+    sanctuary_ticks: int
+    swift_march_hops: int
+    costs: GuildCapabilityCosts
+    shared: GuildSharedCapabilities
+    signature: dict  # force id -> capability name; read-only MappingProxyType
 
 
 @dataclass(frozen=True)
 class Guild:
-    bronze: GuildBronze
+    thresholds: GuildPerTier
+    platinum_condition: GuildPlatinumCondition
+    objectives: GuildObjectives
+    rewards: GuildRewards
+    stakes: GuildStakes
+    capabilities: GuildCapabilities
 
 
 @dataclass(frozen=True)
@@ -299,6 +364,19 @@ def _build(cls: type, data: object, path: str):
                     f"{child}: expected a string, got {type(value).__name__}"
                 )
             kwargs[name] = value
+        elif field.type is dict:
+            # A read-only string->string map (dynamic keys, e.g. force -> capability).
+            if not isinstance(value, dict):
+                raise ConfigError(
+                    f"{child}: expected a mapping, got {type(value).__name__}"
+                )
+            for k, v in value.items():
+                if not isinstance(k, str) or not isinstance(v, str):
+                    raise ConfigError(
+                        f"{child}: expected string keys and values, "
+                        f"got {k!r}: {v!r}"
+                    )
+            kwargs[name] = MappingProxyType(dict(value))
         else:  # pragma: no cover - would be a bug in this schema, not in era.yml
             raise ConfigError(f"{child}: unsupported schema type {field.type!r}")
     return cls(**kwargs)

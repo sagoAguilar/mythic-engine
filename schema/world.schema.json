@@ -76,6 +76,18 @@
   "additionalProperties": false,
   "$defs": {
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "guild_tier": { "enum": ["bronze", "silver", "gold", "platinum"] },
+    "guild_per_tier": {
+      "type": "object",
+      "properties": {
+        "bronze": { "type": "integer" },
+        "silver": { "type": "integer" },
+        "gold": { "type": "integer" },
+        "platinum": { "type": "integer" }
+      },
+      "required": ["bronze", "silver", "gold", "platinum"],
+      "additionalProperties": false
+    },
     "fortify_level_curve": {
       "description": "A per-level value (escalating, not a flat per-level multiplier) for exactly the 3 fortification levels F3 declares.",
       "type": "object",
@@ -161,6 +173,30 @@
           },
           "required": ["type", "target"],
           "additionalProperties": false
+        },
+        "guild": {
+          "description": "Guild history per force: the tiers completed at that force's board. Rank is the highest tier completed (derived, not stored). Optional until phase-2 spawn produces it by default.",
+          "type": "object",
+          "patternProperties": {
+            "^force-[a-z0-9]+$": {
+              "type": "object",
+              "properties": {
+                "completed": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/guild_tier" },
+                  "uniqueItems": true
+                }
+              },
+              "required": ["completed"],
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "sanctuary_until": {
+          "description": "Tick through which the adventurer is immune to the hunt (sanctuary capability). Absent or 0 means no active immunity.",
+          "type": "integer",
+          "minimum": 0
         }
       },
       "required": ["id", "name", "controller", "essence", "position", "units", "reputation", "capabilities", "personal_quest"],
@@ -202,7 +238,11 @@
             "force": { "type": "string", "pattern": "^force-[a-z0-9]+$" },
             "n_ticks": { "type": "integer", "minimum": 1 },
             "delta": { "type": "integer", "minimum": 1 },
-            "units_at_spawn": { "type": "integer", "minimum": 0 }
+            "units_at_spawn": { "type": "integer", "minimum": 0 },
+            "guild_tier": { "$ref": "#/$defs/guild_tier" },
+            "insured": { "type": "boolean" },
+            "wagered": { "type": "boolean" },
+            "entrenched": { "type": "boolean" }
           },
           "additionalProperties": false
         },
@@ -409,23 +449,96 @@
           "additionalProperties": false
         },
         "guild": {
-          "description": "F9: the Adventurers' Guild - Bronze/travel + hold only so far, a deliberately partial first slice of a larger, phased system (docs/playtest-notes.md idea #8).",
           "type": "object",
           "properties": {
-            "bronze": {
+            "thresholds": { "$ref": "#/$defs/guild_per_tier" },
+            "platinum_condition": {
               "type": "object",
               "properties": {
-                "travel_deadline": { "type": "integer", "minimum": 1 },
-                "hold_n_ticks": { "type": "integer", "minimum": 1 },
-                "essence_hit": { "type": "integer", "minimum": 0 },
-                "essence_miss": { "type": "integer", "minimum": 0 },
-                "reputation_hit": { "type": "integer", "minimum": 0 }
+                "force_regions_max": { "type": "integer", "minimum": 0 }
               },
-              "required": ["travel_deadline", "hold_n_ticks", "essence_hit", "essence_miss", "reputation_hit"],
+              "required": ["force_regions_max"],
+              "additionalProperties": false
+            },
+            "objectives": {
+              "type": "object",
+              "properties": {
+                "travel_deadline": { "$ref": "#/$defs/guild_per_tier" },
+                "hold_n_ticks": { "$ref": "#/$defs/guild_per_tier" }
+              },
+              "required": ["travel_deadline", "hold_n_ticks"],
+              "additionalProperties": false
+            },
+            "rewards": {
+              "type": "object",
+              "properties": {
+                "essence": {
+                  "type": "object",
+                  "properties": {
+                    "bronze_hit": { "type": "integer", "minimum": 0 },
+                    "bronze_miss": { "type": "integer", "minimum": 0 },
+                    "silver": { "type": "integer", "minimum": 0 },
+                    "gold": { "type": "integer", "minimum": 0 },
+                    "platinum": { "type": "integer", "minimum": 0 }
+                  },
+                  "required": ["bronze_hit", "bronze_miss", "silver", "gold", "platinum"],
+                  "additionalProperties": false
+                },
+                "reputation": { "$ref": "#/$defs/guild_per_tier" }
+              },
+              "required": ["essence", "reputation"],
+              "additionalProperties": false
+            },
+            "stakes": {
+              "type": "object",
+              "properties": {
+                "bronze": { "enum": ["minor", "major"] },
+                "silver": { "enum": ["minor", "major"] },
+                "gold": { "enum": ["minor", "major"] },
+                "platinum": { "enum": ["minor", "major"] }
+              },
+              "required": ["bronze", "silver", "gold", "platinum"],
+              "additionalProperties": false
+            },
+            "capabilities": {
+              "type": "object",
+              "properties": {
+                "sanctuary_ticks": { "type": "integer", "minimum": 1 },
+                "swift_march_hops": { "type": "integer", "minimum": 1 },
+                "costs": {
+                  "type": "object",
+                  "properties": {
+                    "swift_march": { "type": "integer", "minimum": 0 },
+                    "sanctuary": { "type": "integer", "minimum": 0 },
+                    "insure": { "type": "integer", "minimum": 0 },
+                    "entrench": { "type": "integer", "minimum": 0 },
+                    "wager": { "type": "integer", "minimum": 0 }
+                  },
+                  "required": ["swift_march", "sanctuary", "insure", "entrench", "wager"],
+                  "additionalProperties": false
+                },
+                "shared": {
+                  "type": "object",
+                  "properties": {
+                    "bronze": { "enum": ["swift_march", "sanctuary", "insure", "entrench", "wager"] },
+                    "silver": { "enum": ["swift_march", "sanctuary", "insure", "entrench", "wager"] }
+                  },
+                  "required": ["bronze", "silver"],
+                  "additionalProperties": false
+                },
+                "signature": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^force-[a-z0-9]+$": { "enum": ["swift_march", "sanctuary", "insure", "entrench", "wager"] }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": ["sanctuary_ticks", "swift_march_hops", "costs", "shared", "signature"],
               "additionalProperties": false
             }
           },
-          "required": ["bronze"],
+          "required": ["thresholds", "platinum_condition", "objectives", "rewards", "stakes", "capabilities"],
           "additionalProperties": false
         },
         "map": {

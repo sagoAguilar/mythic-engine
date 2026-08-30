@@ -191,3 +191,28 @@ def test_applied_delta_keeps_world_schema_valid(state, world):
     result["graveyard"].extend(delta["graveyard_additions"])
     result["combats_last_tick"] = delta["combat_regions"]
     validate_world(result)  # the arbiter is caged too
+
+
+def test_sanctuary_annuls_the_hunt_but_units_still_fight(state):
+    # sanctuary_until >= tick (tick == 1): the kill is annulled, yet the
+    # committed hunters still resolve as a normal attack party and capture
+    working = _hunt(state, count=2)
+    working["adventurers"]["adventurer-sago"]["sanctuary_until"] = 1
+    delta = resolve_combat(working, [], CONFIG, SEED)
+
+    assert delta["adventurer_deaths"] == []
+    assert delta["graveyard_additions"] == []
+    assert delta["essence_changes"] == {}
+    assert delta["loot_changes"] == {}
+    assert delta["owner_changes"] == {"arm-2-b": "force-1"}  # units still fought
+
+
+def test_expired_sanctuary_does_not_protect(state):
+    # sanctuary_until < tick (tick == 1): stale immunity, the hunt lands
+    working = _hunt(state, count=2)
+    working["adventurers"]["adventurer-sago"]["sanctuary_until"] = 0
+    delta = resolve_combat(working, [], CONFIG, SEED)
+
+    assert delta["adventurer_deaths"] == [
+        {"id": "adventurer-sago", "region": "arm-2-b", "killer": "force-1"}
+    ]

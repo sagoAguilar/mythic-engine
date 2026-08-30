@@ -1,0 +1,151 @@
+# Expected phase-9 delta (resolving tick 1, window 8).
+#
+# No deaths -> no vengeance. Ownership is force-2 5 / force-3 5 / force-1 1
+# with ring-1 neutral: the top two tie, so there is no strict leader and the
+# rubber band spawns nothing. Only the guild boards fire.
+#
+# The sole living adventurer's reputation opens these (force, tier) slots:
+#   force-1 (rep 70): bronze, silver, gold, platinum
+#       — platinum also allowed: force-1 holds 1 region <= platinum_condition 1
+#   force-2 (rep 10): bronze, silver           (gold needs 25)
+#   force-3 (rep 25): bronze, silver, gold     (platinum needs 70)
+# but (force-3, bronze) is already an active board (hold-0-1), so its slot is
+# skipped. Eight boards remain.
+#
+# Type and target come from sha256("20260706:1:guild:<force>:<tier>"):
+#   even -> travel (region = seeded pick over all regions but the adventurer's
+#           position ring-2, sorted); odd -> hold (region = seeded neutral,
+#           here the lone neutral ring-1).
+# Iteration is forces sorted then tier order bronze..platinum; seq counts only
+# actual spawns (the skipped force-3/bronze does not consume a seq).
+#
+# Deadlines: travel = tick + guild.objectives.travel_deadline[tier]
+#            (bronze 1+3=4, silver 1+5=6, gold 1+7=8, platinum 1+10=11);
+#            hold   = tick + quests.window_ticks = 1+8 = 9.
+# Reward field: bronze 0 (coin-flip paid in phase 8), else flat essence
+#            (silver 3, gold 8, platinum 25).
+# Stake: the tier's bucket -> quests.stakes value (minor 1, major 2).
+quests_spawned:
+  travel-1-1:              # force-1 bronze (even -> travel, ring-1)
+    id: travel-1-1
+    type: travel
+    tier: minor
+    eligibility: adventurer
+    reward: 0
+    stake: 1
+    deadline: 4
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: ring-1
+      force: force-1
+      guild_tier: bronze
+  travel-1-2:              # force-1 silver (even -> travel, arm-1-b)
+    id: travel-1-2
+    type: travel
+    tier: minor
+    eligibility: adventurer
+    reward: 3
+    stake: 1
+    deadline: 6
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: arm-1-b
+      force: force-1
+      guild_tier: silver
+  travel-1-3:              # force-1 gold (even -> travel, arm-3-a)
+    id: travel-1-3
+    type: travel
+    tier: major
+    eligibility: adventurer
+    reward: 8
+    stake: 2
+    deadline: 8
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: arm-3-a
+      force: force-1
+      guild_tier: gold
+  hold-1-4:               # force-1 platinum (odd -> hold, ring-1)
+    id: hold-1-4
+    type: hold
+    tier: major
+    eligibility: adventurer
+    reward: 25
+    stake: 2
+    deadline: 9
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: ring-1
+      force: force-1
+      guild_tier: platinum
+      n_ticks: 5
+  hold-1-5:               # force-2 bronze (odd -> hold, ring-1)
+    id: hold-1-5
+    type: hold
+    tier: minor
+    eligibility: adventurer
+    reward: 0
+    stake: 1
+    deadline: 9
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: ring-1
+      force: force-2
+      guild_tier: bronze
+      n_ticks: 1
+  hold-1-6:               # force-2 silver (odd -> hold, ring-1)
+    id: hold-1-6
+    type: hold
+    tier: minor
+    eligibility: adventurer
+    reward: 3
+    stake: 1
+    deadline: 9
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: ring-1
+      force: force-2
+      guild_tier: silver
+      n_ticks: 2
+  travel-1-7:              # force-3 silver (even -> travel, arm-2-b); bronze slot skipped
+    id: travel-1-7
+    type: travel
+    tier: minor
+    eligibility: adventurer
+    reward: 3
+    stake: 1
+    deadline: 6
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: arm-2-b
+      force: force-3
+      guild_tier: silver
+  travel-1-8:              # force-3 gold (even -> travel, arm-2-b)
+    id: travel-1-8
+    type: travel
+    tier: major
+    eligibility: adventurer
+    reward: 8
+    stake: 2
+    deadline: 8
+    max_claimants: 1
+    claimed_by: []
+    progress: {}
+    params:
+      region: arm-2-b
+      force: force-3
+      guild_tier: gold

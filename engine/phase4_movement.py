@@ -26,6 +26,22 @@ staged here as ``sieges_started`` for the resolver to fold into the
 persistent ``/world/sieges/`` state after this tick's phase 7 has run
 (a fresh siege never erodes or pays upkeep on its own declare-tick).
 
+Two guild capabilities also resolve here (docs/intent.md punto 9):
+
+- ``swift_march`` (Bronze): the adventurer moves up to
+  ``swift_march_hops`` adjacent hops in one order, each hop with
+  ``move_units`` legality (adjacency; F4 coexistence means any owner is
+  legal). Only the final position matters — the intermediate is
+  irrelevant to output — so we verify reachability, not a path. Flat
+  essence cost, charged once on success (phase 4).
+- ``sanctuary`` (Silver): the adventurer sets
+  ``sanctuary_until = tick + sanctuary_ticks - 1``, buying hunt immunity
+  respected by phase 5. Flat essence cost, charged on success.
+
+Both are adventurer-only, cost essence, and share the ``move_units``
+one-move-per-tick budget (``sanctuary`` is not a move and has its own
+guard). A failed precondition rejects the order uncharged.
+
 Pure function: no input mutation, no I/O, no wall clock; the only
 randomness is the seed chain above. Orders that fail their catalog
 preconditions are reported in ``rejected_orders``, never applied.
@@ -42,6 +58,22 @@ def _living_adventurer_at(state: dict, region: str) -> bool:
     return any(a["position"] == region for a in state["adventurers"].values())
 
 
+def _reachable_within(regions: dict, src: str, max_hops: int) -> set[str]:
+    """Regions reachable from *src* in 1..max_hops adjacent hops (F4
+    coexistence: any owner is traversable). Excludes *src* itself."""
+    frontier = {src}
+    reached: set[str] = set()
+    for _ in range(max_hops):
+        nxt: set[str] = set()
+        for region_id in frontier:
+            for neighbour in regions[region_id]["adjacent"]:
+                if neighbour not in reached and neighbour != src:
+                    nxt.add(neighbour)
+        reached |= nxt
+        frontier = nxt
+    return reached
+
+
 def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
     """(state, moves, config, seed) -> phase-4 state delta.
 
@@ -49,6 +81,8 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
       unit_changes:     {region_id: net unit delta} (departures + settled arrivals)
       owner_changes:    {region_id: new owner} (neutral captures)
       adventurer_moves: {adventurer_id: new position}
+      essence_changes:  {adventurer_id: net essence delta} (capability costs)
+      sanctuary_until:  {adventurer_id: tick through which hunt-immune}
       pending_combats:  [{region, parties: [{actor, count, kind, target}]}]
                         parties ordered by the seeded formula, combats by region id
       sieges_started:   {region_id: {attacker, defender, from, units, ticks_elapsed: 0}}
@@ -61,6 +95,8 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
     unit_changes: dict[str, int] = {}
     owner_changes: dict[str, str] = {}
     adventurer_moves: dict[str, str] = {}
+    essence_changes: dict[str, int] = {}
+    sanctuary_until: dict[str, int] = {}
     sieges_started: dict[str, dict] = {}
     rejected: list[dict] = []
     # region -> actor -> {"count": int, "kind": str, "target": str | None}
@@ -68,6 +104,10 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
     # (actor, region) -> units still available after prior commitments
     available: dict[tuple[str, str], int] = {}
     moved_adventurers: set[str] = set()
+    sanctuaried: set[str] = set()
+    # adventurer -> essence still available after prior capability charges
+    adv_essence: dict[str, int] = {}
+    costs = config.guild.capabilities.costs
 
     def reject(actor: str, index: int, reason: str) -> None:
         rejected.append({"actor": actor, "index": index, "reason": reason})
@@ -75,11 +115,80 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
     def charge(region_id: str, delta: int) -> None:
         unit_changes[region_id] = unit_changes.get(region_id, 0) + delta
 
+    def spend_essence(adventurer_id: str, amount: int) -> None:
+        adv_essence[adventurer_id] -= amount
+        essence_changes[adventurer_id] = essence_changes.get(adventurer_id, 0) - amount
+
     for batch in sorted(moves, key=lambda b: b["actor"]):
         actor = batch["actor"]
         is_adventurer = actor.startswith("adventurer-")
         for index, order in enumerate(batch["orders"]):
             action = order.get("action")
+
+            if action == "sanctuary":
+                if not is_adventurer:
+                    reject(actor, index, "sanctuary: adventurer-only action")
+                    continue
+                adventurer = state["adventurers"].get(actor)
+                if adventurer is None:
+                    reject(actor, index, "sanctuary: no living adventurer entity")
+                    continue
+                if "sanctuary" not in adventurer["capabilities"]:
+                    reject(actor, index, "sanctuary: capability not unlocked")
+                    continue
+                if actor in sanctuaried:
+                    reject(actor, index, "sanctuary: already invoked this tick")
+                    continue
+                available_essence = adv_essence.setdefault(actor, adventurer["essence"])
+                if available_essence < costs.sanctuary:
+                    reject(actor, index,
+                           f"sanctuary: {costs.sanctuary} essence exceeds the "
+                           f"{available_essence} available")
+                    continue
+                spend_essence(actor, costs.sanctuary)
+                sanctuaried.add(actor)
+                sanctuary_until[actor] = (
+                    tick + config.guild.capabilities.sanctuary_ticks - 1
+                )
+                continue
+
+            if action == "swift_march":
+                if not is_adventurer:
+                    reject(actor, index, "swift_march: adventurer-only action")
+                    continue
+                adventurer = state["adventurers"].get(actor)
+                if adventurer is None:
+                    reject(actor, index, "swift_march: no living adventurer entity")
+                    continue
+                if "swift_march" not in adventurer["capabilities"]:
+                    reject(actor, index, "swift_march: capability not unlocked")
+                    continue
+                if actor in moved_adventurers:
+                    reject(actor, index, "swift_march: adventurer already moved this tick")
+                    continue
+                src_id, dst_id = order["from"], order["to"]
+                if adventurer["position"] != src_id:
+                    reject(actor, index, f"swift_march: adventurer is not in {src_id}")
+                    continue
+                if order["count"] != 1:
+                    reject(actor, index, "swift_march: adventurer moves exactly 1 unit (itself)")
+                    continue
+                available_essence = adv_essence.setdefault(actor, adventurer["essence"])
+                if available_essence < costs.swift_march:
+                    reject(actor, index,
+                           f"swift_march: {costs.swift_march} essence exceeds the "
+                           f"{available_essence} available")
+                    continue
+                hops = config.guild.capabilities.swift_march_hops
+                if dst_id not in _reachable_within(regions, src_id, hops):
+                    reject(actor, index,
+                           f"swift_march: {dst_id} is not reachable from {src_id} "
+                           f"within {hops} hops")
+                    continue
+                spend_essence(actor, costs.swift_march)
+                adventurer_moves[actor] = dst_id
+                moved_adventurers.add(actor)
+                continue
 
             if action == "siege":
                 if is_adventurer:
@@ -225,6 +334,8 @@ def resolve_movement(state: dict, moves: list[dict], config, seed: int) -> dict:
         "unit_changes": {k: v for k, v in sorted(unit_changes.items()) if v != 0},
         "owner_changes": dict(sorted(owner_changes.items())),
         "adventurer_moves": dict(sorted(adventurer_moves.items())),
+        "essence_changes": {k: v for k, v in sorted(essence_changes.items()) if v != 0},
+        "sanctuary_until": dict(sorted(sanctuary_until.items())),
         "pending_combats": pending_combats,
         "sieges_started": dict(sorted(sieges_started.items())),
         "rejected_orders": rejected,

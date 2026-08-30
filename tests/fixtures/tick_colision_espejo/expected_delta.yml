@@ -13,6 +13,8 @@ owner_changes:
   arm-1-b: force-1
 adventurer_moves:
   adventurer-sago: capital-2
+essence_changes: {}
+sanctuary_until: {}
 pending_combats:
   - region: ring-1
     parties:

@@ -1,0 +1,62 @@
+# Expected phase-8 delta (resolving tick 1), no accept orders. The adventurer
+# stands on ring-2; six guild boards are claimed. Processed sorted by id:
+#
+#   hold-0-5   (Gold,   force-2): progress 2 + occupies ring-2 -> 3 >= 3 ->
+#              success. Flat: +8 essence, +5 reputation with force-2.
+#   hold-0-6   (Silver, force-3): progress 0 + occupies -> 1 < 2 -> still
+#              active; streak written to quest_progress, no reward.
+#   travel-0-1 (Silver, force-1): on ring-2 -> success. Flat: +3 essence,
+#              +1 reputation with force-1.
+#   travel-0-2 (Gold,   force-1): target capital-3, deadline 0 -> expired
+#              failure. No reputation penalty (only the spent stake), no death
+#              (essence far above zero).
+#   travel-0-7 (Bronze, force-2): on ring-2 -> success. Coin
+#              sha256(20260706:1:adventurer-sago:travel-0-7) is odd -> MISS:
+#              +2 essence (consolation), +0 reputation.
+#   travel-0-9 (Bronze, force-3): on ring-2 -> success. Coin is even -> HIT:
+#              +1 essence, +1 reputation with force-3.
+#
+# Essence: 8 + 3 + 2 + 1 = 14. Reputation: force-1 +1, force-2 +5, force-3 +1.
+essence_changes:
+  adventurer-sago: 14
+reputation_changes:
+  adventurer-sago:
+    force-1: 1
+    force-2: 5
+    force-3: 1
+quest_progress:
+  hold-0-6:
+    adventurer-sago: 1
+quests_resolved:
+  hold-0-5: success
+  travel-0-1: success
+  travel-0-2: failure
+  travel-0-7: success
+  travel-0-9: success
+quest_claims: {}
+quest_markers: {}
+# Every guild success completes its tier (a Bronze miss counts) and confers
+# the tier's capability, deduped against what the adventurer holds:
+#   force-1 silver (travel-0-1)  -> shared.silver  = sanctuary
+#   force-2 gold   (hold-0-5)    -> signature[f-2] = entrench
+#   force-2 bronze (travel-0-7)  -> shared.bronze  = swift_march (miss still counts)
+#   force-3 bronze (travel-0-9)  -> shared.bronze  = swift_march (already pending)
+# travel-0-2 failed -> no force-1 gold completion. Unique caps: entrench,
+# sanctuary, swift_march.
+capability_grants:
+  adventurer-sago:
+    - entrench
+    - sanctuary
+    - swift_march
+guild_completions:
+  adventurer-sago:
+    force-1:
+      - silver
+    force-2:
+      - bronze
+      - gold
+    force-3:
+      - bronze
+adventurer_deaths: []
+graveyard_additions: []
+rejected_orders: []

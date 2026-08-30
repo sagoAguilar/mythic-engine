@@ -1,127 +1,145 @@
-"""Cross-phase integration for the Guild's Bronze quests, travel and
-hold (F9): real multi-tick engine.resolve() playthroughs, not just the
-phase-8/9 unit tests - this is what proves the standing-pool spawn
-(phase 9) and the coin-flip resolution (phase 8) actually compose
-correctly through the resolver, across several ticks, the way
-test_siege_lifecycle.py and test_decree_lifecycle.py already do for
-their own features.
+"""Cross-tick integration for the Adventurers' Guild (intent.md point 9):
+the full spawn -> accept -> resolve -> reward -> capability arc through
+real engine.resolve() calls, not just the phase-8/9 unit tests. This is
+what exercises resolve.py's wiring - stake charged on accept, the
+reward/reputation routed to the adventurer pool, the completed tier
+persisted onto adventurer.guild, the granted capability appended to
+adventurer.capabilities, and (next tick) that capability actually
+spendable via swift_march - none of which any single-phase test covers.
+
+The design under test is the adventurer-gated full ladder: guild boards
+spawn only with exactly one living adventurer, accept and completion are
+necessarily different ticks (phase 8 accepts after it verifies, so a
+same-tick claim can never be instantly rewarded), and Bronze pays via
+the seeded coin-flip while completing the tier still confers swift_march
+whether the coin hit or missed.
 """
 
+import hashlib
 import shutil
 from pathlib import Path
 
 import yaml
 
+from engine.config import load_era_config
 from engine.resolve import resolve
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FULL_TICK = REPO_ROOT / "tests" / "fixtures" / "full_tick"
+CONFIG = load_era_config(REPO_ROOT / "world" / "era.yml")
+SEED = 20260706
 
 
 def _dump(path: Path, data) -> None:
     path.write_text(yaml.safe_dump(data, sort_keys=True), encoding="utf-8")
 
 
-def _quiet_forces(root: Path, tick: int) -> None:
-    moves_dir = root / "moves" / f"tick-{tick}"
-    moves_dir.mkdir(parents=True, exist_ok=True)
+def _bronze_coin_hit(tick: int, quest_id: str) -> bool:
+    """Mirror phase 8's Bronze coin exactly (even -> hit)."""
+    coin = int(hashlib.sha256(
+        f"{SEED}:{tick}:adventurer-sago:{quest_id}".encode("utf-8")
+    ).hexdigest(), 16)
+    return coin % 2 == 0
+
+
+def _quiet_forces(moves_dir: Path) -> None:
     for actor in ("force-1", "force-2", "force-3"):
         _dump(moves_dir / f"{actor}.yml", {
-            "actor": actor, "tick": tick, "origin": "agent", "orders": [],
+            "actor": actor, "tick": int(moves_dir.name.split("-")[1]),
+            "origin": "agent", "orders": [],
         })
 
 
-def test_bronze_travel_quest_spawns_is_accepted_and_completes(tmp_path):
+def _prepare(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     shutil.copytree(FULL_TICK, root)
 
-    _quiet_forces(root, 1)
-    _dump(root / "moves" / "tick-1" / "adventurer-sago.yml", {
-        "actor": "adventurer-sago", "tick": 1, "origin": "human", "orders": [],
+    # Sole living adventurer: drop the elder's tick-1 spawn so phase 9's
+    # guild boards fire (they no-op with zero or several adventurers).
+    (root / "moves" / "tick-1" / "adventurer-elder.yml").unlink()
+
+    # A Bronze travel board on force-1's tablón, unclaimed, targeting the
+    # adventurer's own start region so a single stationary tick completes
+    # it. Reward 0 at spawn: the phase-8 coin pays Bronze.
+    active_dir = root / "world" / "quests" / "active"
+    active_dir.mkdir(parents=True, exist_ok=True)
+    _dump(active_dir / "travel-0-1.yml", {
+        "id": "travel-0-1", "type": "travel", "tier": "minor",
+        "eligibility": "adventurer", "reward": 0, "stake": 1, "deadline": 5,
+        "max_claimants": 1, "claimed_by": [], "progress": {},
+        "params": {"region": "arm-2-b", "force": "force-1",
+                   "guild_tier": "bronze"},
     })
-    state = resolve(root, root / "moves" / "tick-1", seed=20260706)
 
-    travels = {
-        qid: q for qid, q in state["quests"]["active"].items() if q["type"] == "travel"
-    }
-    assert len(travels) == 3
-    assert {q["params"]["force"] for q in travels.values()} == {
-        "force-1", "force-2", "force-3",
-    }
-    # force-2's board quest targets arm-3-b, reachable from sago's arm-2-b
-    # in exactly 3 hops (ring-2 -> ring-3 -> arm-3-b), landing on its
-    # deadline (tick 1 + travel_deadline 3 = 4) exactly
-    quest_id, quest = next(
-        (qid, q) for qid, q in travels.items() if q["params"]["force"] == "force-2"
-    )
-    assert quest["params"]["region"] == "arm-3-b"
-    assert quest["deadline"] == 4
-
-    for tick, dest in ((2, "ring-2"), (3, "ring-3"), (4, "arm-3-b")):
-        _quiet_forces(root, tick)
+    for tick in (1, 2, 3):
         moves_dir = root / "moves" / f"tick-{tick}"
-        orders = [{"action": "move_units", "from": None, "to": dest, "count": 1}]
-        orders[0]["from"] = state["adventurers"]["adventurer-sago"]["position"]
-        if tick == 2:
-            orders.append({"action": "accept_quest", "quest_id": quest_id})
-        _dump(moves_dir / "adventurer-sago.yml", {
-            "actor": "adventurer-sago", "tick": tick, "origin": "human", "orders": orders,
-        })
-        state = resolve(root, moves_dir, seed=20260706)
-
-    assert quest_id in state["quests"]["resolved"]
-    assert state["quests"]["resolved"][quest_id]["status"] == "success"
-    assert quest_id not in state["quests"]["active"]
-    # coin-flip landed either way, but never a net loss versus the stake
-    assert state["adventurers"]["adventurer-sago"]["essence"] >= 5 - 1
+        moves_dir.mkdir(exist_ok=True)
+        _quiet_forces(moves_dir)
+    return root
 
 
-def test_bronze_hold_quest_spawns_is_accepted_and_completes(tmp_path):
-    root = tmp_path / "repo"
-    shutil.copytree(FULL_TICK, root)
+def _guild_slots(state: dict) -> set:
+    return {
+        (q["params"]["force"], q["params"]["guild_tier"])
+        for q in state["quests"]["active"].values()
+        if "guild_tier" in q.get("params", {})
+    }
 
-    _quiet_forces(root, 1)
+
+def test_guild_full_arc_spawn_accept_reward_capability(tmp_path):
+    root = _prepare(tmp_path)
+
+    # --- tick 1: accept the board; phase 9 spawns the rest of the ladder --
     _dump(root / "moves" / "tick-1" / "adventurer-sago.yml", {
-        "actor": "adventurer-sago", "tick": 1, "origin": "human", "orders": [],
+        "actor": "adventurer-sago", "tick": 1, "origin": "human",
+        "orders": [{"action": "accept_quest", "quest_id": "travel-0-1"}],
     })
-    state = resolve(root, root / "moves" / "tick-1", seed=20260706)
+    state = resolve(root, root / "moves" / "tick-1", seed=SEED)
 
-    holds = {
-        qid: q for qid, q in state["quests"]["active"].items() if q["type"] == "hold"
-    }
-    assert len(holds) == 3
-    assert {q["params"]["force"] for q in holds.values()} == {
-        "force-1", "force-2", "force-3",
-    }
-    # force-3's board quest targets arm-2-a, reachable from sago's arm-2-b
-    # via capital-2 in 2 hops; occupying it ticks 3 and 4 completes the
-    # n_ticks=2 streak on tick 4
-    quest_id, quest = next(
-        (qid, q) for qid, q in holds.items() if q["params"]["force"] == "force-3"
+    sago = state["adventurers"]["adventurer-sago"]
+    assert state["quests"]["active"]["travel-0-1"]["claimed_by"] == ["adventurer-sago"]
+    assert sago["essence"] == 5 - 1  # stake charged on accept
+    assert "travel-0-1" not in state["quests"]["resolved"]  # no same-tick reward
+    # sole adventurer at reputation 0: only Bronze is accessible, and
+    # force-1's Bronze slot is taken, so phase 9 fills force-2 and force-3.
+    assert ("force-2", "bronze") in _guild_slots(state)
+    assert ("force-3", "bronze") in _guild_slots(state)
+
+    # --- tick 2: stationary on the target -> completion, reward, capability
+    _dump(root / "moves" / "tick-2" / "adventurer-sago.yml", {
+        "actor": "adventurer-sago", "tick": 2, "origin": "human", "orders": [],
+    })
+    state = resolve(root, root / "moves" / "tick-2", seed=SEED)
+
+    sago = state["adventurers"]["adventurer-sago"]
+    assert state["quests"]["resolved"]["travel-0-1"]["status"] == "success"
+    assert sago["guild"] == {"force-1": {"completed": ["bronze"]}}
+    assert "swift_march" in sago["capabilities"]  # Bronze -> the shared capability
+
+    hit = _bronze_coin_hit(2, "travel-0-1")
+    expected_essence = (5 - 1) + (
+        CONFIG.guild.rewards.essence.bronze_hit if hit
+        else CONFIG.guild.rewards.essence.bronze_miss
     )
-    assert quest["params"]["region"] == "arm-2-a"
-    assert quest["params"]["n_ticks"] == 2
+    assert sago["essence"] == expected_essence
+    assert sago["reputation"]["force-1"] == (
+        CONFIG.guild.rewards.reputation.bronze if hit else 0
+    )
 
-    plan = {
-        2: ("capital-2", [{"action": "accept_quest", "quest_id": quest_id}]),
-        3: ("arm-2-a", []),
-        4: ("arm-2-a", []),
-    }
-    for tick, (dest, extra_orders) in plan.items():
-        _quiet_forces(root, tick)
-        moves_dir = root / "moves" / f"tick-{tick}"
-        position = state["adventurers"]["adventurer-sago"]["position"]
-        orders = list(extra_orders)
-        if dest != position:
-            orders.append({"action": "move_units", "from": position, "to": dest, "count": 1})
-        _dump(moves_dir / "adventurer-sago.yml", {
-            "actor": "adventurer-sago", "tick": tick, "origin": "human", "orders": orders,
-        })
-        state = resolve(root, moves_dir, seed=20260706)
+    chronicle = (root / "chronicle" / "tick-2.md").read_text(encoding="utf-8")
+    assert "gremio:bronze@force-1" in chronicle
+    assert "capacidad:+swift_march" in chronicle
+    assert "rango:force-1=bronze" in chronicle
 
-    assert quest_id in state["quests"]["resolved"]
-    assert state["quests"]["resolved"][quest_id]["status"] == "success"
-    assert quest_id not in state["quests"]["active"]
-    assert state["adventurers"]["adventurer-sago"]["essence"] >= 5 - 1
-    # hold never touches force-3's own state at all
-    assert state["forces"]["force-3"]["units"] > 0
+    # --- tick 3: the just-earned capability is spendable across ticks -----
+    essence_before = sago["essence"]
+    _dump(root / "moves" / "tick-3" / "adventurer-sago.yml", {
+        "actor": "adventurer-sago", "tick": 3, "origin": "human",
+        "orders": [{"action": "swift_march", "from": "arm-2-b",
+                    "to": "arm-2-a", "count": 1}],  # a genuine 2-hop reach
+    })
+    state = resolve(root, root / "moves" / "tick-3", seed=SEED)
+
+    sago = state["adventurers"]["adventurer-sago"]
+    assert sago["position"] == "arm-2-a"
+    assert sago["essence"] == essence_before - CONFIG.guild.capabilities.costs.swift_march

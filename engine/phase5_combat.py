@@ -25,7 +25,11 @@ The hunt (attack_region, target: adventurer, F4): a landed declaration
 kills the coexisting non-combatant outright — no F1 duel; the cost is
 the order slot and the units' commitment. The hunt lands against the
 adventurer's post-move position (simultaneity: a same-tick move
-dodges). The committed units then act as a normal party toward the
+dodges). A ``sanctuary_until >= tick`` adventurer (guild capability, set
+in phase 4) annuls the hunt: the kill does not land (defensive intent
+wins over the simultaneous hunt), but only the kill — the committed
+units still resolve as a normal party toward the region. The committed
+units then act as a normal party toward the
 region: merging with an own garrison, fighting F1 otherwise. On death,
 ceil(essence x loot_burn_fraction) burns; the rest deposits as regional
 loot expiring after loot_dissipation_ticks — collected immediately by
@@ -100,6 +104,12 @@ def resolve_combat(state: dict, moves: list, config, seed: int) -> dict:
                      if adv["position"] == region_id and aid not in dead),
                     None,
                 )
+                if (victim_id is not None
+                        and state["adventurers"][victim_id].get("sanctuary_until", 0)
+                        >= tick):
+                    # sanctuary: the hunt (the kill) is annulled; only the kill.
+                    # The committed units still resolve as a normal party below.
+                    victim_id = None
                 if victim_id is not None:
                     victim = state["adventurers"][victim_id]
                     dead.add(victim_id)

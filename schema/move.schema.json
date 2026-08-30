@@ -22,7 +22,7 @@
     "region_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
     "count": { "type": "integer", "minimum": 1 },
     "order": {
-      "description": "One order in the batch: exactly one of the ten catalog actions below.",
+      "description": "One order in the batch: exactly one of the catalog actions below.",
       "oneOf": [
         { "$ref": "#/$defs/move_units" },
         { "$ref": "#/$defs/attack_region" },
@@ -33,7 +33,12 @@
         { "$ref": "#/$defs/accept_quest" },
         { "$ref": "#/$defs/spawn_adventurer" },
         { "$ref": "#/$defs/claim_loot" },
-        { "$ref": "#/$defs/trade" }
+        { "$ref": "#/$defs/trade" },
+        { "$ref": "#/$defs/swift_march" },
+        { "$ref": "#/$defs/sanctuary" },
+        { "$ref": "#/$defs/insure" },
+        { "$ref": "#/$defs/entrench" },
+        { "$ref": "#/$defs/wager" }
       ]
     },
     "move_units": {
@@ -148,6 +153,57 @@
         "region": { "$ref": "#/$defs/region_id" }
       },
       "required": ["action", "region"],
+      "additionalProperties": false
+    },
+    "swift_march": {
+      "description": "Guild capability: multi-hop adventurer move (<= 2 adjacent hops). The hop-count and path legality are engine checks (phase 4), not schema.",
+      "type": "object",
+      "properties": {
+        "action": { "const": "swift_march" },
+        "from": { "$ref": "#/$defs/region_id" },
+        "to": { "$ref": "#/$defs/region_id" },
+        "count": { "$ref": "#/$defs/count" }
+      },
+      "required": ["action", "from", "to", "count"],
+      "additionalProperties": false
+    },
+    "sanctuary": {
+      "description": "Guild capability: declare adventurer immunity to the hunt for the frozen window (phase 4).",
+      "type": "object",
+      "properties": {
+        "action": { "const": "sanctuary" }
+      },
+      "required": ["action"],
+      "additionalProperties": false
+    },
+    "insure": {
+      "description": "Guild capability: pay a premium to refund the stake of an active guild quest on failure/expiry (phase 8).",
+      "type": "object",
+      "properties": {
+        "action": { "const": "insure" },
+        "quest_id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["action", "quest_id"],
+      "additionalProperties": false
+    },
+    "entrench": {
+      "description": "Guild capability: shorten a claimed hold quest's objective by one tick, once per quest (phase 8).",
+      "type": "object",
+      "properties": {
+        "action": { "const": "entrench" },
+        "quest_id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["action", "quest_id"],
+      "additionalProperties": false
+    },
+    "wager": {
+      "description": "Guild capability: double-or-nothing an active guild quest — reward x2 on success, total forfeit on failure (phase 8).",
+      "type": "object",
+      "properties": {
+        "action": { "const": "wager" },
+        "quest_id": { "type": "string", "minLength": 1 }
+      },
+      "required": ["action", "quest_id"],
       "additionalProperties": false
     }
   }

@@ -59,14 +59,43 @@ def test_trade_success_pct_by_depth_tier():
     assert cfg.adventurer.trade_success_pct.for_tier("capital") == 100
 
 
-def test_guild_bronze_config():
+def test_shipped_era_yml_loads_guild_block():
     cfg = load_era_config(ERA_YML)
-    assert cfg.guild.bronze.travel_deadline == 3
-    assert cfg.guild.bronze.hold_n_ticks == 2
-    assert cfg.guild.bronze.essence_hit == 1
-    assert cfg.guild.bronze.essence_miss == 2
-    assert cfg.guild.bronze.reputation_hit == 1
-    assert cfg.guild.bronze.essence_miss > cfg.guild.bronze.essence_hit  # never a worse outcome
+    assert cfg.guild.thresholds.platinum == 70
+    assert cfg.guild.platinum_condition.force_regions_max == 1
+    assert cfg.guild.objectives.travel_deadline.gold == 7
+    assert cfg.guild.objectives.hold_n_ticks.platinum == 5
+    assert cfg.guild.rewards.essence.bronze_hit == 1
+    assert cfg.guild.rewards.essence.bronze_miss == 2
+    assert cfg.guild.rewards.reputation.gold == 5
+    assert cfg.guild.stakes.gold == "major"
+    assert cfg.guild.capabilities.sanctuary_ticks == 2
+    assert cfg.guild.capabilities.swift_march_hops == 2
+    assert cfg.guild.capabilities.costs.wager == 0
+    assert cfg.guild.capabilities.shared.bronze == "swift_march"
+    assert cfg.guild.capabilities.signature["force-1"] == "insure"
+    assert cfg.guild.capabilities.signature["force-3"] == "wager"
+
+
+def test_guild_signature_is_readonly_map():
+    cfg = load_era_config(ERA_YML)
+    with pytest.raises(TypeError):
+        cfg.guild.capabilities.signature["force-1"] = "wager"
+
+
+def test_guild_missing_key_fails_naming_the_key(tmp_path):
+    copy = _mutated_copy(tmp_path, lambda d: d["guild"]["thresholds"].pop("platinum"))
+    with pytest.raises(ConfigError, match=r"guild\.thresholds: missing key\(s\): platinum"):
+        load_era_config(copy)
+
+
+def test_guild_signature_non_string_value_fails(tmp_path):
+    def break_map(d):
+        d["guild"]["capabilities"]["signature"]["force-1"] = 7
+
+    copy = _mutated_copy(tmp_path, break_map)
+    with pytest.raises(ConfigError, match=r"guild\.capabilities\.signature"):
+        load_era_config(copy)
 
 
 def test_fortify_upkeep_escalates_by_level():

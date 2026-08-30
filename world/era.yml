@@ -94,14 +94,58 @@ quests:
     supremacy_major: 0.55      # leader fraction spawning major quests
     adventurer_death_vengeance: raid   # spawns raid against the killer
 
-guild:                         # Adventurers' Guild (F9) - Bronze/travel + hold only so far,
-                                # PROVISIONAL: first slice of a larger, phased system
-  bronze:
-    travel_deadline: 3         # ticks from spawn to reach the target region
-    hold_n_ticks: 2            # consecutive occupation ticks required; deadline reuses quests.window_ticks
-    essence_hit: 1             # coin-flip hit: reputation gained too
-    essence_miss: 2            # coin-flip miss: no reputation, bigger consolation essence
-    reputation_hit: 1          # +0 reputation on a miss (not a tunable - the definition of "miss")
+guild:                         # the Adventurers' Guild (docs/intent.md point 9)
+  thresholds:                  # reputation with a force to unlock its board's tier
+    bronze: 0
+    silver: 10                 # aligned with reputation.thresholds.trade
+    gold: 25                   # aligned with reputation.thresholds.refuge
+    platinum: 70
+  platinum_condition:
+    force_regions_max: 1       # platinum also requires the board force at <= this many regions
+  objectives:
+    travel_deadline:           # ticks from spawn to reach the target region
+      bronze: 3
+      silver: 5
+      gold: 7
+      platinum: 10
+    hold_n_ticks:              # consecutive occupation ticks
+      bronze: 1
+      silver: 2
+      gold: 3
+      platinum: 5
+  rewards:
+    essence:
+      bronze_hit: 1            # Bronze pays via a seeded coin-flip: hit or miss
+      bronze_miss: 2           # miss doubles the essence (consolation) but pays no reputation
+      silver: 3
+      gold: 8
+      platinum: 25
+    reputation:                # positive with the board force; Bronze via the same coin-flip
+      bronze: 1
+      silver: 1
+      gold: 5
+      platinum: 15
+  stakes:                      # per tier, naming a quests.stakes bucket (minor|major)
+    bronze: minor
+    silver: minor
+    gold: major
+    platinum: major
+  capabilities:
+    sanctuary_ticks: 2         # ticks of hunt immunity granted by sanctuary
+    swift_march_hops: 2        # max adjacent hops in one swift_march
+    costs:                     # essence charged to invoke each capability
+      swift_march: 1
+      sanctuary: 2
+      insure: 1
+      entrench: 2
+      wager: 0                 # self-costing: the forfeited stake + reward is the price
+    shared:                    # tier -> capability, uniform across all forces
+      bronze: swift_march
+      silver: sanctuary
+    signature:                 # force -> capability, granted at that force's gold tier (persona map)
+      force-1: insure
+      force-2: entrench
+      force-3: wager
 
 map:
   arms: 3

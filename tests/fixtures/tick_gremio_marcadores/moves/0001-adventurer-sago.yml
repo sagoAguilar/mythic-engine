@@ -1,0 +1,12 @@
+actor: adventurer-sago
+tick: 1
+origin: agent
+orders:
+- action: entrench
+  quest_id: hold-1-a
+- action: wager
+  quest_id: travel-1-b
+- action: insure
+  quest_id: travel-1-c
+- action: wager
+  quest_id: travel-1-f

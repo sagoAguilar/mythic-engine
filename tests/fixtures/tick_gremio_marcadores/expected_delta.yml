@@ -1,0 +1,56 @@
+# Expected phase-8 delta (resolving tick 1), one adventurer batch invoking all
+# three guild markers. Paso 0 marks + charges, then verification consumes them:
+#
+#   PASO 0 charges (essence): entrench 2 + wager 0 + insure 1 + wager 0 = -3
+#
+#   hold-1-a  (Silver, force-1, hold n_ticks 2): entrenched -> base 0+1=1,
+#             occupies ring-2 -> streak 2 >= 2 -> success. Pays +3 essence,
+#             +1 rep force-1. force-1 silver is new -> records + confers
+#             sanctuary (shared.silver, unheld).
+#   travel-1-b (Gold, force-2): wagered, on ring-2 -> success. Essence 8 x2
+#             = +16; reputation +5 (NOT doubled). force-2 gold already
+#             completed -> not re-recorded; its signature (entrench) already
+#             held -> no grant. Reward still paid (rewards repeat).
+#   travel-1-c (Silver, force-3): insured, target capital-1, deadline 0 ->
+#             expired failure. Stake refunded +1 (minor). No rep penalty, no
+#             death (essence high).
+#   travel-1-f (Bronze, force-1): wagered, on ring-2 -> success. Coin
+#             sha256(20260706:1:adventurer-sago:travel-1-f) is even -> HIT:
+#             bronze_hit 1 x2 = +2 essence, +1 rep force-1. force-1 bronze is
+#             new -> records + confers swift_march (shared.bronze, unheld).
+#
+# Essence: -3 + 3 + 16 + 1 + 2 = 19. Reputation: force-1 +2, force-2 +5.
+essence_changes:
+  adventurer-sago: 19
+reputation_changes:
+  adventurer-sago:
+    force-1: 2
+    force-2: 5
+quest_progress: {}
+quests_resolved:
+  hold-1-a: success
+  travel-1-b: success
+  travel-1-c: failure
+  travel-1-f: success
+quest_claims: {}
+quest_markers:
+  hold-1-a:
+    entrenched: true
+  travel-1-b:
+    wagered: true
+  travel-1-c:
+    insured: true
+  travel-1-f:
+    wagered: true
+capability_grants:
+  adventurer-sago:
+    - sanctuary
+    - swift_march
+guild_completions:
+  adventurer-sago:
+    force-1:
+      - bronze
+      - silver
+adventurer_deaths: []
+graveyard_additions: []
+rejected_orders: []

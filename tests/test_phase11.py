@@ -59,6 +59,8 @@ def _empty_events():
         "quests_spawned": {}, "quests_resolved": {},
         "adventurer_moves": {}, "loot_claims": {}, "trade_results": [],
         "adventurer_spawned": [], "adventurer_deaths": [],
+        "sanctuary_activated": [], "capability_grants": {},
+        "guild_completions": {},
         "supremacy": {"supremacy": {"leader": None,
                                     "streaks": {"force-1": 0, "force-2": 0, "force-3": 0}},
                       "coronation": None, "era_ends": None},
@@ -118,3 +120,87 @@ def test_moves_are_not_phase11_business(state):
     batch = {"actor": "force-1", "tick": 1, "origin": "agent",
              "orders": [{"action": "fortify", "region": "capital-1"}]}
     assert resolve_chronicle(state, [batch], CONFIG, SEED) == resolve_chronicle(state, [], CONFIG, SEED)
+
+
+def _adventurer_events(text):
+    """The eventos cell of the adventurer-sago row in the Aventurero section."""
+    in_section = False
+    for line in text.splitlines():
+        if line.startswith("## Aventurero"):
+            in_section = True
+        elif in_section and line.startswith("| adventurer-sago |"):
+            return line.rsplit("|", 2)[1].strip()
+    raise AssertionError("adventurer-sago row not found")
+
+
+def _resolve_guild_board(working, quest_id, *, tier, force, claimant="adventurer-sago"):
+    """Register a resolved guild board and mark it success this tick."""
+    working["quests"]["resolved"][quest_id] = {
+        "id": quest_id, "type": "raid", "tier": "minor",
+        "eligibility": "adventurer", "max_claimants": "open",
+        "deadline": 5, "reward": 6, "stake": 1, "progress": {},
+        "claimed_by": [claimant], "resolved_tick": 1, "status": "success",
+        "params": {"force": force, "region": "ring-3", "guild_tier": tier},
+    }
+    working["tick_events"]["quests_resolved"][quest_id] = "success"
+
+
+def test_sanctuary_token(state):
+    working = copy.deepcopy(state)
+    working["tick_events"]["sanctuary_activated"] = ["adventurer-sago"]
+    assert "santuario" in _adventurer_events(resolve_chronicle(working, [], CONFIG, SEED)["chronicle"])
+
+
+def test_gremio_token(state):
+    working = copy.deepcopy(state)
+    _resolve_guild_board(working, "guild-1-1", tier="bronze", force="force-1")
+    events = _adventurer_events(resolve_chronicle(working, [], CONFIG, SEED)["chronicle"])
+    assert "gremio:bronze@force-1" in events
+
+
+def test_non_guild_board_success_emits_no_gremio_token(state):
+    # the fixture already resolves raid-0-1 (success) with no guild_tier
+    events = _adventurer_events(resolve_chronicle(state, [], CONFIG, SEED)["chronicle"])
+    assert "gremio:" not in events
+
+
+def test_capability_token(state):
+    working = copy.deepcopy(state)
+    working["tick_events"]["capability_grants"] = {"adventurer-sago": ["swift_march"]}
+    events = _adventurer_events(resolve_chronicle(working, [], CONFIG, SEED)["chronicle"])
+    assert "capacidad:+swift_march" in events
+
+
+def test_rango_token_when_rank_rises(state):
+    working = copy.deepcopy(state)
+    working["adventurers"]["adventurer-sago"]["guild"] = {"force-1": {"completed": ["bronze"]}}
+    working["tick_events"]["guild_completions"] = {"adventurer-sago": {"force-1": ["bronze"]}}
+    events = _adventurer_events(resolve_chronicle(working, [], CONFIG, SEED)["chronicle"])
+    assert "rango:force-1=bronze" in events
+
+
+def test_no_rango_token_when_completion_does_not_raise_rank(state):
+    working = copy.deepcopy(state)
+    # silver already held; completing bronze this tick does not raise the ceiling
+    working["adventurers"]["adventurer-sago"]["guild"] = {
+        "force-1": {"completed": ["bronze", "silver"]}
+    }
+    working["tick_events"]["guild_completions"] = {"adventurer-sago": {"force-1": ["bronze"]}}
+    events = _adventurer_events(resolve_chronicle(working, [], CONFIG, SEED)["chronicle"])
+    assert "rango:" not in events
+
+
+def test_guild_tokens_render_in_resolution_order(state):
+    working = copy.deepcopy(state)
+    working["tick_events"]["adventurer_spawned"] = ["adventurer-sago"]
+    working["tick_events"]["sanctuary_activated"] = ["adventurer-sago"]
+    working["tick_events"]["loot_claims"] = {"adventurer-sago": 3}
+    working["tick_events"]["capability_grants"] = {"adventurer-sago": ["sanctuary"]}
+    working["adventurers"]["adventurer-sago"]["guild"] = {"force-1": {"completed": ["bronze"]}}
+    working["tick_events"]["guild_completions"] = {"adventurer-sago": {"force-1": ["bronze"]}}
+    _resolve_guild_board(working, "guild-1-1", tier="bronze", force="force-1")
+    events = _adventurer_events(resolve_chronicle(working, [], CONFIG, SEED)["chronicle"])
+    assert events == (
+        "spawn; move:capital-2; santuario; botín:+3; "
+        "gremio:bronze@force-1; capacidad:+sanctuary; rango:force-1=bronze"
+    )

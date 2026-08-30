@@ -130,9 +130,57 @@ def _supremacy_section(state: dict, events: dict, config) -> list[str]:
     return lines
 
 
+_TIER_ORDER = ("bronze", "silver", "gold", "platinum")
+
+
+def _guild_tokens(state: dict, events: dict) -> dict[str, dict[str, list[str]]]:
+    """Per-adventurer guild event tokens, grouped by kind.
+
+    ``gremio:<tier>@<fuerza>`` for each guild board completed (resolved
+    success) this tick; ``capacidad:+<nombre>`` for each newly conferred
+    capability; ``rango:<fuerza>=<tier>`` when a completion raises the
+    highest tier held with that force. The caller interleaves them into
+    the event column in resolution order (phase 8, after loot).
+    """
+    per_adv: dict[str, dict[str, list[str]]] = {}
+
+    def bucket(adventurer_id: str, kind: str) -> list[str]:
+        return per_adv.setdefault(adventurer_id, {}).setdefault(kind, [])
+
+    for quest_id, status in events["quests_resolved"].items():
+        if status != "success":
+            continue
+        quest = state["quests"]["resolved"].get(quest_id)
+        if quest is None or quest["params"].get("guild_tier") is None:
+            continue
+        tier, force_id = quest["params"]["guild_tier"], quest["params"]["force"]
+        for claimant in quest["claimed_by"]:
+            if claimant.startswith("adventurer-"):
+                bucket(claimant, "gremio").append(f"gremio:{tier}@{force_id}")
+
+    for adventurer_id, caps in events["capability_grants"].items():
+        for capability in caps:
+            bucket(adventurer_id, "capacidad").append(f"capacidad:+{capability}")
+
+    def rank(tiers) -> int:
+        return max((_TIER_ORDER.index(t) for t in tiers), default=-1)
+
+    for adventurer_id, by_force in events["guild_completions"].items():
+        guild = state["adventurers"].get(adventurer_id, {}).get("guild", {})
+        for force_id, new_tiers in sorted(by_force.items()):
+            completed = guild.get(force_id, {}).get("completed", [])
+            raised = rank(completed)
+            if raised > rank([t for t in completed if t not in new_tiers]):
+                bucket(adventurer_id, "rango").append(
+                    f"rango:{force_id}={_TIER_ORDER[raised]}"
+                )
+    return per_adv
+
+
 def _adventurer_section(state: dict, events: dict) -> list[str]:
     lines = ["## Aventurero", "", "| id | posición | esencia | reputaciones | eventos |",
              "|---|---|---|---|---|"]
+    guild_tokens = _guild_tokens(state, events)
     for adventurer_id in sorted(state["adventurers"]):
         adventurer = state["adventurers"][adventurer_id]
         reputation = " ".join(
@@ -144,6 +192,8 @@ def _adventurer_section(state: dict, events: dict) -> list[str]:
             tokens.append("spawn")
         if adventurer_id in events["adventurer_moves"]:
             tokens.append(f"move:{events['adventurer_moves'][adventurer_id]}")
+        if adventurer_id in events["sanctuary_activated"]:
+            tokens.append("santuario")
         if adventurer_id in events["loot_claims"]:
             tokens.append(f"botín:+{events['loot_claims'][adventurer_id]}")
         for trade in events["trade_results"]:
@@ -152,6 +202,10 @@ def _adventurer_section(state: dict, events: dict) -> list[str]:
             tokens.append(
                 f"trade:{'+' if trade['success'] else 'fail'}@{trade['force']}"
             )
+        guild = guild_tokens.get(adventurer_id, {})
+        tokens += guild.get("gremio", [])
+        tokens += guild.get("capacidad", [])
+        tokens += guild.get("rango", [])
         eventos = "; ".join(tokens) if tokens else "-"
         lines.append(
             f"| {adventurer_id} | {adventurer['position']} | {adventurer['essence']} "

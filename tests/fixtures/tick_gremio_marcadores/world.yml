@@ -1,22 +1,33 @@
 adventurers:
   adventurer-sago:
-    capabilities: []
+    capabilities:
+    - entrench
+    - insure
+    - wager
     controller: github:sagoAguilar
-    essence: 5
+    essence: 10
+    guild:
+      force-1:
+        completed:
+        - gold
+      force-2:
+        completed:
+        - gold
+      force-3:
+        completed:
+        - gold
     id: adventurer-sago
     name: Wanderer
     personal_quest:
       target: era
       type: survive
-    position: capital-2
+    position: ring-2
     reputation:
-      force-1: 0
-      force-2: 0
-      force-3: 0
+      force-1: 20
+      force-2: 30
+      force-3: 25
     units: 1
-combats_last_tick:
-- arm-1-b
-- ring-1
+combats_last_tick: []
 era:
   adventurer:
     baseline_essence: 5
@@ -28,9 +39,9 @@ era:
       type: survive
     trade_cost: 3
     trade_success_pct:
-      ring: 50
       arm: 75
       capital: 100
+      ring: 50
   bootstrap:
     starting_essence: 10
     starting_units_capital: 3
@@ -42,27 +53,27 @@ era:
     k_ticks: 10
     supremacy_threshold: 0.45
   economy:
-    fortify_bonus:
-      level_1: 2
-      level_2: 5
-      level_3: 10
-    fortify_upkeep:
-      level_1: 1
-      level_2: 3
-      level_3: 6
-    fortify_cap: 3
-    upkeep_divisor: 5
-    siege_erosion_interval: 2
-    siege_upkeep: 3
     decree_surge_surcharge:
       level_1: 5
       level_2: 10
       level_3: 20
+    fortify_bonus:
+      level_1: 2
+      level_2: 5
+      level_3: 10
+    fortify_cap: 3
     fortify_cost:
       level_1: 5
       level_2: 10
       level_3: 20
+    fortify_upkeep:
+      level_1: 1
+      level_2: 3
+      level_3: 6
     recruit_cost: 2
+    siege_erosion_interval: 2
+    siege_upkeep: 3
+    upkeep_divisor: 5
     yield_capital: 2
     yield_neutral: 1
     yield_ring: 2
@@ -166,76 +177,92 @@ era:
       trade: 10
 forces:
   force-1:
-    essence: 9
+    essence: 10
     id: force-1
     persona: personas/force-1.md
     surge_streak: 0
-    units: 6
+    units: 3
   force-2:
-    essence: 12
+    essence: 10
     id: force-2
     persona: personas/force-2.md
     surge_streak: 0
-    units: 8
+    units: 3
   force-3:
-    essence: 8
+    essence: 10
     id: force-3
     persona: personas/force-3.md
     surge_streak: 0
-    units: 4
+    units: 3
 graveyard: []
 quests:
   active:
-    raid-1-1:
-      claimed_by: []
-      deadline: 9
-      eligibility: any
-      id: raid-1-1
-      max_claimants: open
-      params:
-        force: force-2
-        region: arm-2-a
-      progress: {}
-      reward: 6
-      stake: 1
-      tier: minor
-      type: raid
-  resolved:
-    blockade-0-2:
-      claimed_by:
-      - force-3
-      deadline: 0
-      eligibility: any
-      id: blockade-0-2
-      max_claimants: open
-      params:
-        force: force-2
-        n_ticks: 3
-        region: arm-3-b
-      progress: {}
-      resolved_tick: 1
-      reward: 5
-      stake: 1
-      status: failure
-      tier: minor
-      type: blockade
-    raid-0-1:
+    hold-1-a:
       claimed_by:
       - adventurer-sago
-      deadline: 5
-      eligibility: any
-      id: raid-0-1
-      max_claimants: open
+      deadline: 8
+      eligibility: adventurer
+      id: hold-1-a
+      max_claimants: 1
+      params:
+        force: force-1
+        guild_tier: silver
+        n_ticks: 2
+        region: ring-2
+      progress: {}
+      reward: 3
+      stake: 1
+      tier: minor
+      type: hold
+    travel-1-b:
+      claimed_by:
+      - adventurer-sago
+      deadline: 8
+      eligibility: adventurer
+      id: travel-1-b
+      max_claimants: 1
       params:
         force: force-2
-        region: ring-3
+        guild_tier: gold
+        region: ring-2
       progress: {}
-      resolved_tick: 1
-      reward: 6
+      reward: 8
+      stake: 2
+      tier: major
+      type: travel
+    travel-1-c:
+      claimed_by:
+      - adventurer-sago
+      deadline: 0
+      eligibility: adventurer
+      id: travel-1-c
+      max_claimants: 1
+      params:
+        force: force-3
+        guild_tier: silver
+        region: capital-1
+      progress: {}
+      reward: 3
       stake: 1
-      status: success
       tier: minor
-      type: raid
+      type: travel
+    travel-1-f:
+      claimed_by:
+      - adventurer-sago
+      deadline: 8
+      eligibility: adventurer
+      id: travel-1-f
+      max_claimants: 1
+      params:
+        force: force-1
+        guild_tier: bronze
+        region: ring-2
+      progress: {}
+      reward: 0
+      stake: 1
+      tier: minor
+      type: travel
+  resolved: {}
 regions:
   arm-1-a:
     adjacent:
@@ -251,7 +278,7 @@ regions:
     adjacent:
     - capital-1
     - ring-1
-    fortification: 1
+    fortification: 0
     id: arm-1-b
     loot: null
     owner: force-1
@@ -315,13 +342,13 @@ regions:
     id: capital-2
     loot: null
     owner: force-2
-    units: 3
+    units: 2
     yield: 2
   capital-3:
     adjacent:
     - arm-3-a
     - arm-3-b
-    fortification: 1
+    fortification: 0
     id: capital-3
     loot: null
     owner: force-3
@@ -337,7 +364,7 @@ regions:
     id: ring-1
     loot: null
     owner: force-1
-    units: 2
+    units: 1
     yield: 2
   ring-2:
     adjacent:
@@ -349,7 +376,7 @@ regions:
     id: ring-2
     loot: null
     owner: force-2
-    units: 2
+    units: 1
     yield: 2
   ring-3:
     adjacent:
@@ -360,12 +387,12 @@ regions:
     fortification: 0
     id: ring-3
     loot: null
-    owner: force-2
+    owner: force-3
     units: 1
     yield: 2
 sieges: {}
 supremacy:
-  leader: force-2
+  leader: null
   streaks:
     force-1: 0
     force-2: 0

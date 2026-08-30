@@ -201,6 +201,10 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         working["regions"][region_id]["owner"] = owner
     for adventurer_id, position in p4["adventurer_moves"].items():
         working["adventurers"][adventurer_id]["position"] = position
+    for adventurer_id, change in p4["essence_changes"].items():
+        working["adventurers"][adventurer_id]["essence"] += change
+    for adventurer_id, until in p4["sanctuary_until"].items():
+        working["adventurers"][adventurer_id]["sanctuary_until"] = until
     working["pending_combats"] = p4["pending_combats"]
 
     # phase 5: combat resolution
@@ -260,11 +264,28 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         working["quests"]["active"][quest_id]["progress"] = progress
     for quest_id, claimants in p8["quest_claims"].items():
         working["quests"]["active"][quest_id]["claimed_by"] = claimants
+    for quest_id, markers in p8["quest_markers"].items():
+        # persist guild markers so a later tick sees them; a board resolved
+        # this same tick has already been consumed, so only active ones matter
+        if quest_id in working["quests"]["active"]:
+            working["quests"]["active"][quest_id]["params"].update(markers)
     for quest_id, status in p8["quests_resolved"].items():
         quest = working["quests"]["active"].pop(quest_id)
         quest["status"] = status
         quest["resolved_tick"] = tick
         working["quests"]["resolved"][quest_id] = quest
+    for adventurer_id, capabilities in p8["capability_grants"].items():
+        held = working["adventurers"][adventurer_id].setdefault("capabilities", [])
+        for capability in capabilities:
+            if capability not in held:
+                held.append(capability)
+    for adventurer_id, by_force in p8["guild_completions"].items():
+        guild = working["adventurers"][adventurer_id].setdefault("guild", {})
+        for force_id, tiers in by_force.items():
+            completed = guild.setdefault(force_id, {"completed": []})["completed"]
+            for tier in tiers:
+                if tier not in completed:
+                    completed.append(tier)
     for death in p8["adventurer_deaths"]:
         del working["adventurers"][death["id"]]
     working["graveyard"].extend(copy.deepcopy(p8["graveyard_additions"]))
@@ -296,10 +317,13 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         "quests_spawned": p9["quests_spawned"],
         "quests_resolved": p8["quests_resolved"],
         "adventurer_moves": p4["adventurer_moves"],
+        "sanctuary_activated": sorted(p4["sanctuary_until"]),
         "loot_claims": p6["loot_claims"],
         "trade_results": p6["trade_results"],
         "adventurer_spawned": sorted(p2["spawned"]),
         "adventurer_deaths": deaths_this_tick,
+        "capability_grants": p8["capability_grants"],
+        "guild_completions": p8["guild_completions"],
         "supremacy": p10,
     }
     p11 = resolve_chronicle(working, batches, config, seed)

@@ -26,6 +26,10 @@ quests_resolved:
 quest_claims:
   dethrone-6-5:
     - force-1
+# no guild boards here: forces damaging forces confer nothing
+quest_markers: {}
+capability_grants: {}
+guild_completions: {}
 adventurer_deaths:
   - id: adventurer-broke
     region: ring-3

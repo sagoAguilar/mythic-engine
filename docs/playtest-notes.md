@@ -292,19 +292,28 @@ chat narration (as already started) before it's ever worth scripting.
 
 ### 8. The Adventurers' Guild — per-force rank ladder + capability rewards
 
-**Implemented (2026-07-31): Bronze fully - both `travel` and `hold`** -
-the first slice of the phased plan below, deliberately. Live in
-`engine/phase9_spawn.py` (the standing one-quest-per-type-per-force-
-board replenishment, `hold` tracked independently of `travel`) and
-`engine/phase8_quests.py` (`travel`'s position check, `hold` reusing
-`blockade`'s consecutive-occupation streak verbatim, and the shared
-coin-flip reward for both). New `era.yml` `guild.bronze` block, quest
-schema's `type` enum gained `travel` and `hold`. Everything else in
-this section - Silver/Gold/Platinum, capabilities (learn/equip/switch),
-narrative-choice quests, and both open "real findings" below (the
-multi-force capability-unlock question, Platinum's double-gate rarity)
-- remains exactly as described: designed, not built. Next slice per
-the phasing plan is Silver.
+**Implemented (2026-08-29): the full ladder + all 5 capabilities.** The
+whole system is now built and green (byte-identical replay passing),
+superseding the earlier Bronze-only slice. Live across the engine:
+`engine/phase9_spawn.py` (adventurer-gated board replenishment, one
+quest per accessible `(force, tier)` slot, `travel`/`hold` chosen by
+`sha256(seed:tick:guild:force:tier)` parity, guild boards spawned last);
+`engine/phase8_quests.py` (`travel` position check, `hold` reusing
+`blockade`'s streak verbatim, Bronze coin-flip vs. flat higher tiers,
+`capability_grants` + `guild_completions` + the `insure`/`entrench`/
+`wager` markers); `engine/phase4_movement.py` (`swift_march` ≤-2-hop BFS
+reach + `sanctuary` immunity window); `engine/phase5_combat.py`
+(sanctuary annuls the hunt, kill-only); `engine/phase11_chronicle.py`
+(`gremio:`/`capacidad:`/`rango:`/`santuario` tokens). Full `era.yml`
+`guild` block (thresholds, platinum_condition, objectives, rewards,
+stakes, capabilities/costs/shared/signature); quest schema `type` enum
+gained `travel`/`hold`; adventurer schema gained `guild` +
+`sanctuary_until`. The frozen spec is now the dedicated section in
+`docs/intent.md` ("Decisiones congeladas — el Gremio de Aventureros").
+Of the two open "real findings" below, Platinum's comodín is resolved
+(grants no capability in v1); the multi-force capability-unlock question
+is settled by the shared/signature split (Bronze/Silver shared,
+Gold = the force's signature).
 
 **Supersedes idea #1.** Started as "give the adventurer a small always-
 available quest," grew through discussion into a full guild system once

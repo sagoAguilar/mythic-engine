@@ -252,6 +252,12 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
         working["sieges"][region_id]["ticks_elapsed"] = ticks_elapsed
     working["sieges"].update(copy.deepcopy(p4["sieges_started"]))
 
+    # phase 10: supremacy counter / coronation — runs before phase 8 so that
+    # dethrone quests check the streak value produced by this tick's combat,
+    # not the value written by the previous tick.
+    p10 = resolve_supremacy(working, batches, config, seed)
+    working["supremacy"] = copy.deepcopy(p10["supremacy"])
+
     # phase 8: quest objectives against post-combat state
     p8 = resolve_quests(working, batches, config, seed)
     for actor, change in p8["essence_changes"].items():
@@ -296,10 +302,6 @@ def resolve(state_dir, moves_dir, seed: int) -> dict:
     p9 = resolve_quest_spawn(working, batches, config, seed)
     del working["adventurer_deaths_this_tick"]
     working["quests"]["active"].update(copy.deepcopy(p9["quests_spawned"]))
-
-    # phase 10: supremacy counter / coronation
-    p10 = resolve_supremacy(working, batches, config, seed)
-    working["supremacy"] = copy.deepcopy(p10["supremacy"])
 
     # phase 11: chronicle (lore lives outside the engine, write-only)
     rejected = sorted(

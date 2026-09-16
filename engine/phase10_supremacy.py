@@ -1,7 +1,8 @@
 """Phase 10 of the resolution order: supremacy counter / coronation.
 
 Writes the ``supremacy`` block that phases 8 (dethrone) and 9 (rubber
-band) read on later ticks. Per force, independently: holding strictly
+band) read within the same tick. Runs before phase 8 so dethrone quests
+see the streak updated by this tick's combat, not the previous tick's value. Per force, independently: holding strictly
 more than ``supremacy_threshold`` of the regions this tick extends the
 streak by one; anything else resets it to zero. Two forces can be
 supreme at once (6/6 of 12 at threshold 0.45) and both streaks grow.

@@ -219,7 +219,8 @@ def test_siege_upkeep_unpaid_ends_immediately_and_returns_units(state):
     assert delta["fortification_changes"] == {}
     assert delta["siege_progress"] == {}
     assert delta["unit_changes"] == {"arm-1-a": 2}  # attacker still owns arm-1-a
-    assert delta["essence_changes"]["force-1"] == -1  # base flow only, no siege charge
+    # unit upkeep floors at 0 — force-1 has no essence/yield so nothing is charged
+    assert delta["essence_changes"].get("force-1", 0) == 0
 
 
 def test_siege_ending_units_are_lost_if_the_origin_changed_hands(state):
@@ -232,6 +233,62 @@ def test_siege_ending_units_are_lost_if_the_origin_changed_hands(state):
     delta = resolve_yield(working, [], CONFIG, SEED)
     assert delta["sieges_ended"] == ["ring-2"]
     assert delta["unit_changes"] == {}
+
+
+def _dismiss_batch(actor, count):
+    return {"actor": actor, "tick": 1, "orders": [
+        {"action": "decree", "kind": "dismiss", "count": count}
+    ]}
+
+
+def test_dismiss_drains_ring_before_arm_before_capital(state):
+    # force-1: ring-1(2), arm-1-a(1), capital-1(3) — dismiss 2 → ring-1 only
+    delta = resolve_yield(state, [_dismiss_batch("force-1", 2)], CONFIG, SEED)
+    assert delta["unit_changes"].get("ring-1") == -2
+    assert "arm-1-a" not in delta["unit_changes"]
+    assert "capital-1" not in delta["unit_changes"]
+
+
+def test_dismiss_spans_tiers_when_one_is_exhausted(state):
+    # dismiss 3: drains ring-1 (2 units) then arm-1-a (1 unit)
+    delta = resolve_yield(state, [_dismiss_batch("force-1", 3)], CONFIG, SEED)
+    assert delta["unit_changes"].get("ring-1") == -2
+    assert delta["unit_changes"].get("arm-1-a") == -1
+    assert "capital-1" not in delta["unit_changes"]
+
+
+def test_dismiss_count_silently_capped_at_total_available(state):
+    # force-1 has 6 units total; dismiss 99 dismisses all 6, no rejection
+    delta = resolve_yield(state, [_dismiss_batch("force-1", 99)], CONFIG, SEED)
+    assert delta["unit_changes"].get("ring-1") == -2
+    assert delta["unit_changes"].get("arm-1-a") == -1
+    assert delta["unit_changes"].get("capital-1") == -3
+
+
+def test_dismiss_reduces_upkeep_charged_this_tick(state):
+    # force-1: 6 units → upkeep floor(6/5)=1; dismiss 1 → 5 units → upkeep floor(5/5)=1 still
+    # dismiss 2 → 4 units → upkeep floor(4/5)=0, so full yield is kept
+    # yield for force-1 = ring-1(2)+arm-1-a(1)+capital-1(2) = 5; no upkeep → +5
+    delta = resolve_yield(state, [_dismiss_batch("force-1", 2)], CONFIG, SEED)
+    assert delta["essence_changes"]["force-1"] == 5
+
+
+def test_upkeep_floors_at_zero_when_force_cannot_pay(state):
+    # manufacture a force with units but no regions and no essence
+    working = copy.deepcopy(state)
+    for rid in ("ring-1", "arm-1-a", "capital-1"):
+        working["regions"][rid]["owner"] = None
+        working["regions"][rid]["units"] = 0
+    # give force-1 10 units in a region it doesn't own (simulate orphaned garrison)
+    # instead: just bump units on a neutral region we make it "own" momentarily
+    # Simpler: set force-1 to own arm-1-b with 10 units but 0 essence, 0 yield
+    working["regions"]["arm-1-b"]["owner"] = "force-1"
+    working["regions"]["arm-1-b"]["units"] = 10
+    working["regions"]["arm-1-b"]["yield"] = 0
+    working["forces"]["force-1"]["essence"] = 0
+    delta = resolve_yield(working, [], CONFIG, SEED)
+    # upkeep = floor(10/5) = 2, available = 0 → actual_upkeep = 0
+    assert delta["essence_changes"].get("force-1", 0) == 0
 
 
 def test_siege_ends_the_instant_its_target_changes_owner(state):
@@ -275,7 +332,8 @@ def test_siege_erosion_and_fortify_upkeep_erosion_stack_without_going_below_zero
     assert delta["fortification_changes"] == {"ring-2": -1}
     assert delta["sieges_ended"] == ["ring-2"]
     assert delta["unit_changes"] == {"capital-3": 1}
-    assert delta["essence_changes"]["force-2"] == -1  # fortify upkeep unpaid, no deduction
+    # unit upkeep floors at 0 — force-2 has no essence/yield; fortify erodes but no essence charge
+    assert delta["essence_changes"].get("force-2", 0) == 0
     assert delta["essence_changes"]["force-3"] == 5 - CONFIG.economy.siege_upkeep  # still charged
 
 

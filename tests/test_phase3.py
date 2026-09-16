@@ -117,39 +117,6 @@ def _decree(kind, region, count):
     return {"action": "decree", "kind": kind, "region": region, "count": count}
 
 
-def test_decree_dismiss_reduces_units_with_no_essence_change(state):
-    delta = resolve_recruit_fortify(
-        state, [_batch("force-1", [_decree("dismiss", "capital-1", 2)])], CONFIG, SEED,
-    )
-    assert delta["unit_changes"] == {"capital-1": -2}
-    assert "force-1" not in delta["essence_changes"]
-    assert delta["rejected_orders"] == []
-
-
-def test_decree_dismiss_exceeding_available_units_rejected(state):
-    delta = resolve_recruit_fortify(
-        state, [_batch("force-1", [_decree("dismiss", "capital-1", 99)])], CONFIG, SEED,
-    )
-    assert delta["unit_changes"] == {}
-    assert "exceeds" in delta["rejected_orders"][0]["reason"]
-
-
-def test_decree_dismiss_sees_units_recruited_earlier_in_the_same_batch(state):
-    # capital-1 starts at 4 units; +2 recruited, then -6 dismissed - only
-    # legal if dismiss accounts for the recruit that landed just before it
-    working = copy.deepcopy(state)
-    working["forces"]["force-1"]["essence"] = 100
-    delta = resolve_recruit_fortify(
-        working,
-        [_batch("force-1", [
-            {"action": "recruit", "region": "capital-1", "count": 2},
-            _decree("dismiss", "capital-1", 6),
-        ])],
-        CONFIG, SEED,
-    )
-    assert delta["unit_changes"] == {"capital-1": 2 - 6}
-    assert delta["rejected_orders"] == []
-
 
 def test_decree_surge_recruit_first_use_charges_tier_one_and_doubles_units(state):
     working = copy.deepcopy(state)
@@ -233,8 +200,10 @@ def test_decree_by_adventurer_rejected(state):
 
 
 def test_decree_on_unowned_region_rejected(state):
+    working = copy.deepcopy(state)
+    working["forces"]["force-1"]["essence"] = 100
     delta = resolve_recruit_fortify(
-        state, [_batch("force-1", [_decree("dismiss", "capital-2", 1)])], CONFIG, SEED,
+        state, [_batch("force-1", [_decree("surge_recruit", "capital-2", 1)])], CONFIG, SEED,
     )
     assert "not owned by force-1" in delta["rejected_orders"][0]["reason"]
 

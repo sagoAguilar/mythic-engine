@@ -27,8 +27,8 @@ Three passes, strictly ordered:
                  some tick <= deadline; no route restriction in v1)
      attrition - params.force fields <= units_at_spawn - delta units
                  (summed over its regions; the cached total is not trusted)
-     dethrone  - supremacy streak of params.force is back to 0 (phase 10's
-                 last written value)
+     dethrone  - supremacy streak of params.force is back to 0 (phase 10
+                 runs before phase 8, so this reflects the current tick)
    Deadlines are inclusive: fulfillable while tick <= deadline, expired
    after. Unclaimed quests never fulfill - they wait or expire.
 

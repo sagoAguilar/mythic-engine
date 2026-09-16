@@ -1,4 +1,4 @@
-"""Phase 7 of the resolution order: economic yield on post-combat ownership.
+"""Phase 7 of the resolution order: economic yield on post-combat ownership, dismiss, and upkeep.
 
 Passive income (docs/intent.md: ``gather`` was eliminated): every owned
 region pays its ``yield`` to its owner, judged on post-combat ownership
@@ -43,10 +43,30 @@ This phase also dissipates stale loot: a pot whose ``expires_tick`` is
 behind the resolving tick became unclaimable when phase 6's window
 passed ("reclamable por M ticks, luego se disipa") and is removed.
 
-Pure function: no input mutation, no I/O, no randomness. ``moves`` and
-``seed`` are part of the uniform phase signature and unused — this
-phase is driven entirely by state and ``config``.
+``dismiss`` decrees (force-only) are processed here, after yield is
+computed and before upkeep is charged. The engine auto-selects which
+regions to drain: farthest (ring) to nearest (capital), then
+lexicographic within each tier. The count is silently capped at total
+available units. Dismissed units reduce the upkeep charged this same
+tick.
+
+If a force's remaining essence after yield is still insufficient to
+cover unit upkeep, the shortfall is silently absorbed: upkeep is capped
+at the available balance and essence floors at 0. No auto-disbandment,
+no penalty beyond paying what is possible.
+
+Pure function: no input mutation, no I/O, no randomness. ``seed`` is
+part of the uniform phase signature and unused.
 """
+
+
+def _tier_key(region_id: str) -> int:
+    """Sort key: ring=0 (farthest), arm=1, capital=2 (nearest)."""
+    if region_id.startswith("ring"):
+        return 0
+    if region_id.startswith("arm"):
+        return 1
+    return 2
 
 
 def resolve_yield(state: dict, moves: list, config, seed: int) -> dict:
@@ -83,10 +103,39 @@ def resolve_yield(state: dict, moves: list, config, seed: int) -> dict:
         if loot is not None and loot["expires_tick"] < tick:
             loot_changes[region_id] = None
 
+    # dismiss decrees: auto-select units ring → arm → capital before upkeep
+    for batch in sorted(moves, key=lambda b: b["actor"]):
+        actor = batch["actor"]
+        if actor not in state["forces"]:
+            continue
+        for order in batch["orders"]:
+            if order.get("action") != "decree" or order.get("kind") != "dismiss":
+                continue
+            remaining_to_dismiss = order["count"]
+            dismiss_regions = sorted(
+                owned_regions.get(actor, []),
+                key=lambda r: (_tier_key(r), r),
+            )
+            for region_id in dismiss_regions:
+                if remaining_to_dismiss <= 0:
+                    break
+                available = regions[region_id]["units"] + unit_changes.get(region_id, 0)
+                dismissed = min(remaining_to_dismiss, available)
+                if dismissed > 0:
+                    unit_changes[region_id] = unit_changes.get(region_id, 0) - dismissed
+                    units_owned[actor] = units_owned.get(actor, 0) - dismissed
+                    remaining_to_dismiss -= dismissed
+
     for force_id in sorted(units_owned):
         upkeep = units_owned[force_id] // config.economy.upkeep_divisor
         if upkeep:
-            essence_changes[force_id] = essence_changes.get(force_id, 0) - upkeep
+            available_essence = (
+                state["forces"][force_id]["essence"]
+                + essence_changes.get(force_id, 0)
+            )
+            actual_upkeep = min(upkeep, max(available_essence, 0))
+            if actual_upkeep:
+                essence_changes[force_id] = essence_changes.get(force_id, 0) - actual_upkeep
 
     sieges_ended: list[str] = []
     siege_progress: dict[str, int] = {}

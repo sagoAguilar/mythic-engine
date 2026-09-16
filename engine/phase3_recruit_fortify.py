@@ -14,9 +14,8 @@ fortification level, and respects the fortification cap. All three
 actions (recruit, fortify, decree) are force-only.
 
 ``decree`` (F7) is a category, not a single action:
-``kind: dismiss`` removes ``count`` units from a region the force owns,
-no essence change and no refund — the release valve for F5/F6's upkeep
-pressure. ``kind: surge_recruit`` shares recruit's preconditions but
+``kind: dismiss`` is processed in phase 7 (after combat and yield), not
+here — this phase skips dismiss decrees entirely. ``kind: surge_recruit`` shares recruit's preconditions but
 delivers ``2 * count`` units for the same per-unit cost; what it really
 costs extra is a flat ``economy.decree_surge_surcharge`` on top, keyed
 to the force's consecutive-tick streak of using it (capped at the 3rd
@@ -38,7 +37,7 @@ def resolve_recruit_fortify(state: dict, moves: list[dict], config, seed: int) -
 
     Returns a dict with:
       essence_changes:       {force_id: negative essence spent}
-      unit_changes:          {region_id: net units recruited/surged/dismissed}
+      unit_changes:          {region_id: net units recruited/surged}
       fortification_changes: {region_id: levels added}
       surge_streak_changes:  {force_id: new surge_streak value} for every
                               force whose streak differs from its current one
@@ -71,7 +70,13 @@ def resolve_recruit_fortify(state: dict, moves: list[dict], config, seed: int) -
                 reject(actor, index, f"{action}: only a force may {verb}")
                 continue
 
-            region_id = order["region"]
+            if action == "decree" and order.get("kind") == "dismiss":
+                continue  # dismiss is processed in phase 7
+
+            region_id = order.get("region")
+            if region_id is None:
+                reject(actor, index, f"{action}: region is required")
+                continue
             region = regions.get(region_id)
             if region is None:
                 reject(actor, index, f"{action}: unknown region {region_id}")
@@ -107,14 +112,6 @@ def resolve_recruit_fortify(state: dict, moves: list[dict], config, seed: int) -
                 fortification_changes[region_id] = (
                     fortification_changes.get(region_id, 0) + 1
                 )
-            elif order["kind"] == "dismiss":
-                available = region["units"] + unit_changes.get(region_id, 0)
-                if order["count"] > available:
-                    reject(actor, index,
-                           f"decree: dismiss count {order['count']} exceeds the "
-                           f"{available} units available in {region_id}")
-                    continue
-                unit_changes[region_id] = unit_changes.get(region_id, 0) - order["count"]
             else:  # surge_recruit
                 if actor not in surge_streak_this_tick:
                     prior = state["forces"][actor]["surge_streak"]

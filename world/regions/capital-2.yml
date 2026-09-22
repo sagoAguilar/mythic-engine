@@ -1,7 +1,7 @@
 adjacent:
 - arm-2-a
 - arm-2-b
-fortification: 0
+fortification: 1
 id: capital-2
 loot: null
 owner: force-2

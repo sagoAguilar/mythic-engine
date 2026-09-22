@@ -2,11 +2,24 @@ name: Resolve tick
 
 # Thin shell around engine.resolve() (CLAUDE.md: "the GitHub Actions
 # workflow is a thin shell around this call; all logic must be testable
-# offline"). This file only orchestrates: checkout, run, commit, push.
-# No adjudication logic lives here.
+# offline"). This file only orchestrates: checkout, generate moves, run,
+# commit, push. No adjudication logic lives here.
+#
+# NOTE (deviation from intent.md item 6, which scopes the agent client as
+# "maquina local en v1"): the "Generate agent moves" step runs the agent
+# client in CI so a dispatch produces LLM-driven moves without a local
+# checkout. Moves remain proposals - they pass through phase-1 validation
+# and never enter adjudication, so the golden rule holds. Set the repo
+# secret ANTHROPIC_API_KEY (a Console sk-ant-api03 key) for it to run;
+# a missing/failed force is covered by the engine's NPC substitution.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      generate_moves:
+        description: "Generate LLM moves before resolving (needs ANTHROPIC_API_KEY secret)"
+        type: boolean
+        default: true
   # world/era.yml's era.cadence is "manual" for era 1, so this workflow
   # only fires on demand. When an era switches era.cadence to a cron
   # expression, add a matching `schedule:` trigger here - GitHub Actions
@@ -36,7 +49,24 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install pyyaml jsonschema
+        run: pip install pyyaml jsonschema 'anthropic>=0.40,<1'
+
+      - name: Generate agent moves
+        if: ${{ inputs.generate_moves }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY}" ]; then
+            echo "ANTHROPIC_API_KEY secret is not set; skipping move generation."
+            echo "All forces will fall back to deterministic NPC substitution."
+            exit 0
+          fi
+          # Best-effort per force: a failed agent leaves no move file, and
+          # the engine's NPC substitution covers the absence.
+          for force in force-1 force-2 force-3; do
+            python scripts/run_agent.py --force "${force}" \
+              || echo "::warning::${force} agent failed; NPC substitution will cover it"
+          done
 
       - name: Resolve tick
         run: python scripts/run_resolve.py
@@ -45,7 +75,7 @@ jobs:
         run: |
           git config user.name "mythic-engine-arbiter"
           git config user.email "arbiter@users.noreply.github.com"
-          git add world chronicle
+          git add world chronicle moves
           if git diff --cached --quiet; then
             echo "Nothing to commit; resolve produced no changes."
             exit 0
